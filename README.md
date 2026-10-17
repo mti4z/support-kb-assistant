@@ -1,5 +1,7 @@
 # Support KB Assistant
 
+**Live demo:** https://support-kb-assistant.onrender.com (free instance: the first request can take up to a minute to wake up)
+
 A small API that answers IT support questions from a knowledge base, with **citations** and a **measured retrieval quality**. Built with FastAPI and PostgreSQL full-text search. Claude can optionally write the final answer.
 
 I built it to connect my IT support background (Google IT Support certificate) with my database work (PostgreSQL), and to practice retrieval and evaluation, not only "calling an LLM".
