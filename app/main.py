@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Query
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field
 
 from app.answer import build_answer
@@ -20,6 +21,9 @@ def _source(p: dict) -> dict:
     }
 
 
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse(url="/docs")
 @app.get("/health")
 def health():
     return {"status": "ok"}
