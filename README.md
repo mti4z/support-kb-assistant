@@ -10,8 +10,8 @@ I built it to connect my IT support background (Google IT Support certificate) w
 
 ```
 question -> PostgreSQL full-text search (weighted tsvector, ranked) -> top passages
-         -> answer: best passage (default) or Claude, grounded only on those passages
-         -> response with sources, or "no match" when nothing is relevant enough
+         -> Answer: best passage (default) or Claude, grounded only on those passages
+         -> Response with sources, or "no match" when nothing is relevant enough
 ```
 
 - **Chunking:** each article in `data/articles/` is split by `##` section, so results are specific passages.
