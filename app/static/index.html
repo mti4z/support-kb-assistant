@@ -98,6 +98,8 @@
   .sources ul { margin: 0; padding-left: 18px; }
   .sources li { margin: 2px 0; }
   .sources .heading { color: var(--muted); }
+  .feedback { margin-top: 16px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: .9rem; }
+  .feedback .chip:disabled { opacity: .6; cursor: default; }
   footer { margin-top: 40px; color: var(--muted); font-size: .9rem; }
   footer a { color: var(--accent); }
   @media (max-width: 480px) {
@@ -128,7 +130,7 @@
   <div id="result"></div>
 
   <footer>
-    Demo with 14 sample support articles.
+    Demo with 14 sample support articles. Questions you ask are stored to improve the knowledge base, so please don't include personal information.<br>
     <a href="/docs">API docs</a> ·
     <a href="https://github.com/mti4z/support-kb-assistant">Source code</a>
   </footer>
@@ -187,6 +189,28 @@
     return order.map(function (title) { return { title: title, headings: byTitle[title] }; });
   }
 
+  function addFeedback(card, queryId) {
+    var box = el("div", "feedback");
+    box.appendChild(el("span", null, "Was this helpful?"));
+    function send(helpful) {
+      box.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
+      fetch("/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query_id: queryId, helpful: helpful })
+      })
+        .then(function (r) { if (!r.ok) throw new Error(); box.textContent = "Thanks for the feedback."; })
+        .catch(function () { box.textContent = "Could not save your feedback."; });
+    }
+    [["Yes", true], ["No", false]].forEach(function (pair) {
+      var b = el("button", "chip", pair[0]);
+      b.type = "button";
+      b.addEventListener("click", function () { send(pair[1]); });
+      box.appendChild(b);
+    });
+    card.appendChild(box);
+  }
+
   function render(data) {
     if (data.mode === "no_match") {
       showMessage("warn", "No matching article", data.answer);
@@ -214,6 +238,7 @@
       box.appendChild(list);
       card.appendChild(box);
     }
+    if (data.query_id) addFeedback(card, data.query_id);
     resultEl.appendChild(card);
   }
 
