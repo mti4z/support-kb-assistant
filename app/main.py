@@ -1,5 +1,7 @@
+from pathlib import Path
+
 from fastapi import FastAPI, Query
-from fastapi.responses import RedirectResponse
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from app.answer import build_answer
@@ -21,9 +23,14 @@ def _source(p: dict) -> dict:
     }
 
 
+INDEX_HTML = Path(__file__).parent / "static" / "index.html"
+
+
 @app.get("/", include_in_schema=False)
-def root():
-    return RedirectResponse(url="/docs")
+def home():
+    return FileResponse(INDEX_HTML)
+
+
 @app.get("/health")
 def health():
     return {"status": "ok"}

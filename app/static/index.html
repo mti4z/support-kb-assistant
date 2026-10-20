@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Support KB Assistant</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Ask an IT support question and get an answer from a knowledge base, with sources.">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --text: #1b2430;
+    --muted: #5d6877;
+    --line: #dfe3e8;
+    --accent: #1f6feb;
+    --accent-text: #ffffff;
+    --accent-soft: #e8f0fe;
+    --warn-bg: #fff6e5;
+    --warn-line: #f0d9a8;
+    --err-bg: #fdecec;
+    --err-line: #f1b5b5;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12161c;
+      --card: #1a2029;
+      --text: #e6eaf0;
+      --muted: #9aa5b4;
+      --line: #2b3441;
+      --accent: #5b9bff;
+      --accent-text: #0b1220;
+      --accent-soft: #1f2b3f;
+      --warn-bg: #2b2415;
+      --warn-line: #54451f;
+      --err-bg: #2e1a1a;
+      --err-line: #5c2e2e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 720px; margin: 0 auto; padding: 40px 16px 56px; }
+  h1 { font-size: 1.75rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .lead { margin: 0 0 28px; color: var(--muted); }
+  label { display: block; font-weight: 600; margin-bottom: 8px; }
+  .row { display: flex; gap: 8px; }
+  input[type="text"] {
+    flex: 1; min-width: 0;
+    font: inherit; color: inherit;
+    padding: 12px 14px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  button {
+    font: inherit; font-weight: 600;
+    padding: 12px 20px;
+    border: 0; border-radius: 10px;
+    background: var(--accent); color: var(--accent-text);
+    cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: progress; }
+  input:focus-visible, button:focus-visible, .chip:focus-visible, a:focus-visible {
+    outline: 3px solid var(--accent); outline-offset: 2px;
+  }
+  .examples { margin: 14px 0 0; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .examples span { color: var(--muted); font-size: .9rem; }
+  .chip {
+    font: inherit; font-size: .9rem; font-weight: 500;
+    padding: 6px 12px;
+    background: var(--accent-soft); color: var(--text);
+    border: 1px solid var(--line); border-radius: 999px;
+  }
+  #status { min-height: 1.5em; margin: 20px 0 0; color: var(--muted); }
+  .card {
+    margin-top: 12px;
+    padding: 20px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+  }
+  .card.warn { background: var(--warn-bg); border-color: var(--warn-line); }
+  .card.error { background: var(--err-bg); border-color: var(--err-line); }
+  .card h2 { margin: 0 0 8px; font-size: 1rem; }
+  .badge {
+    display: inline-block; margin-left: 8px; padding: 1px 8px;
+    font-size: .75rem; font-weight: 600; vertical-align: 1px;
+    color: var(--muted); border: 1px solid var(--line); border-radius: 999px;
+  }
+  .answer { margin: 0; white-space: pre-wrap; }
+  .sources { margin: 18px 0 0; padding-top: 14px; border-top: 1px solid var(--line); }
+  .sources h3 { margin: 0 0 6px; font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .sources ul { margin: 0; padding-left: 18px; }
+  .sources li { margin: 2px 0; }
+  .sources .heading { color: var(--muted); }
+  footer { margin-top: 40px; color: var(--muted); font-size: .9rem; }
+  footer a { color: var(--accent); }
+  @media (max-width: 480px) {
+    main { padding-top: 28px; }
+    .row { flex-direction: column; }
+    #ask-button { width: 100%; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Support KB Assistant</h1>
+  <p class="lead">Ask an IT support question. The answer comes from a small knowledge base, and every answer shows its sources.</p>
+
+  <form id="ask-form" autocomplete="off">
+    <label for="question">Your question</label>
+    <div class="row">
+      <input id="question" type="text" maxlength="500" required placeholder="e.g. I can't connect to the VPN from home">
+      <button id="ask-button" type="submit">Ask</button>
+    </div>
+  </form>
+
+  <div class="examples" id="examples">
+    <span>Try:</span>
+  </div>
+
+  <p id="status" role="status" aria-live="polite"></p>
+  <div id="result"></div>
+
+  <footer>
+    Demo with 14 sample support articles.
+    <a href="/docs">API docs</a> ·
+    <a href="https://github.com/mti4z/support-kb-assistant">Source code</a>
+  </footer>
+</main>
+
+<script>
+(function () {
+  var EXAMPLES = [
+    "I can't connect to the VPN from home",
+    "The printer says it is offline",
+    "Someone stole my work laptop",
+    "What is the capital of France?"
+  ];
+  var form = document.getElementById("ask-form");
+  var input = document.getElementById("question");
+  var button = document.getElementById("ask-button");
+  var statusEl = document.getElementById("status");
+  var resultEl = document.getElementById("result");
+  var examplesEl = document.getElementById("examples");
+
+  EXAMPLES.forEach(function (text) {
+    var chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    chip.textContent = text;
+    chip.addEventListener("click", function () {
+      input.value = text;
+      form.requestSubmit();
+    });
+    examplesEl.appendChild(chip);
+  });
+
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function showMessage(kind, title, text) {
+    resultEl.replaceChildren();
+    var card = el("section", "card " + kind);
+    card.appendChild(el("h2", null, title));
+    card.appendChild(el("p", "answer", text));
+    resultEl.appendChild(card);
+  }
+
+  // One entry per article, with the sections that matched.
+  function groupSources(sources) {
+    var order = [];
+    var byTitle = {};
+    sources.forEach(function (s) {
+      if (!byTitle[s.title]) { byTitle[s.title] = []; order.push(s.title); }
+      if (byTitle[s.title].indexOf(s.heading) === -1) byTitle[s.title].push(s.heading);
+    });
+    return order.map(function (title) { return { title: title, headings: byTitle[title] }; });
+  }
+
+  function render(data) {
+    if (data.mode === "no_match") {
+      showMessage("warn", "No matching article", data.answer);
+      return;
+    }
+    resultEl.replaceChildren();
+    var card = el("section", "card");
+    var title = el("h2", null, "Answer");
+    title.appendChild(el("span", "badge",
+      data.mode === "claude" ? "written by Claude from the sources" : "best matching passage"));
+    card.appendChild(title);
+    card.appendChild(el("p", "answer", data.answer));
+
+    var sources = groupSources(data.sources || []);
+    if (sources.length) {
+      var box = el("div", "sources");
+      box.appendChild(el("h3", null, "Sources"));
+      var list = el("ul");
+      sources.forEach(function (s) {
+        var li = el("li");
+        li.appendChild(el("strong", null, s.title));
+        li.appendChild(el("span", "heading", " \u203A " + s.headings.join(" \u00B7 ")));
+        list.appendChild(li);
+      });
+      box.appendChild(list);
+      card.appendChild(box);
+    }
+    resultEl.appendChild(card);
+  }
+
+  form.addEventListener("submit", function (event) {
+    event.preventDefault();
+    var question = input.value.trim();
+    if (question.length < 3) {
+      statusEl.textContent = "Please write a question with at least 3 characters.";
+      return;
+    }
+    button.disabled = true;
+    resultEl.replaceChildren();
+    statusEl.textContent = "Searching…";
+
+    var controller = new AbortController();
+    var giveUp = setTimeout(function () { controller.abort(); }, 90000);
+    var slow = setTimeout(function () {
+      statusEl.textContent = "The free server may be waking up. This can take up to a minute…";
+    }, 4000);
+
+    fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: question }),
+      signal: controller.signal
+    })
+      .then(function (response) {
+        if (response.status === 422) {
+          throw new Error("Please write a question between 3 and 500 characters.");
+        }
+        if (!response.ok) throw new Error("The server answered with an error (" + response.status + ").");
+        return response.json();
+      })
+      .then(function (data) {
+        statusEl.textContent = "";
+        render(data);
+      })
+      .catch(function (err) {
+        statusEl.textContent = "";
+        var message = err.name === "AbortError"
+          ? "The server took too long to respond. Please try again in a moment."
+          : (err.message || "Something went wrong. Please try again.");
+        showMessage("error", "Could not get an answer", message);
+      })
+      .finally(function () {
+        clearTimeout(giveUp);
+        clearTimeout(slow);
+        button.disabled = false;
+      });
+  });
+})();
+</script>
+</body>
+</html>

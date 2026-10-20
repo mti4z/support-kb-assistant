@@ -50,3 +50,10 @@ def test_ask_out_of_scope_abstains():
 
 def test_ask_validates_input():
     assert client.post("/ask", json={"question": "a"}).status_code == 422
+
+
+def test_root_serves_the_web_page():
+    r = client.get("/")
+    assert r.status_code == 200
+    assert "text/html" in r.headers["content-type"]
+    assert "Support KB Assistant" in r.text
