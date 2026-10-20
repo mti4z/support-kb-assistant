@@ -1,0 +1,41 @@
+# Grupos de palabras que se usan para lo mismo en soporte IT (español).
+# Un grupo por línea, separado por comas. Si una pregunta contiene una palabra
+# de un grupo, las demás palabras del grupo se agregan a la búsqueda.
+# Se ignoran mayúsculas, acentos, guiones y plurales.
+
+computadora, computador, ordenador, pc, compu, laptop, notebook, portatil
+lento, lenta, lentisimo, colgado, colgarse, se cuelga, trabado, congelado, tarda, demora
+contraseña, clave, password, credenciales, pin
+bloqueada, bloqueado, bloqueo
+wifi, wi-fi, red inalambrica, wlan, internet
+cortar, se corta, se cae, caida, desconecta, inestable
+vpn, acceso remoto, conexion remota, tunel
+impresora, imprimir, impresion, fotocopiadora, multifuncion
+correo, mail, email, e-mail, buzon, casilla, bandeja, outlook
+mfa, 2fa, verificacion en dos pasos, doble factor, autenticador, autenticacion
+phishing, estafa, sospechoso, fraude, spam
+pantalla azul, bsod, codigo de detencion, error critico
+robado, robo, robaron, hurto, perdido, perdi, extraviado, extravie
+telefono, celular, movil, smartphone
+software, aplicacion, app, programa
+instalar, instalacion
+carpeta, unidad compartida, unidad de red, directorio, recurso compartido
+permiso, acceso denegado, sin acceso, no autorizado
+videollamada, reunion, videoconferencia, teams, zoom, meet
+microfono, mic, auricular, auriculares, headset, audio, sonido, altavoz, parlante
+nuevo empleado, ingreso, incorporacion, nuevo ingreso, primer dia, soy nuevo
+reiniciar, reinicio, reboot
+monitor, segunda pantalla, pantalla externa, segundo monitor
+pendrive, memoria usb, usb, disco externo, unidad externa
+navegador, chrome, edge, firefox, pagina web, sitio web
+adjunto, archivo pesado, archivo grande, pesado
+escritorio remoto, rdp, trabajar desde casa
+dejar la empresa, renuncia, renunciar, desvinculacion, ultimo dia, devolver equipo
+calendario, agenda, invitacion, evento
+notificacion, aviso, popup
+compartir pantalla, pantalla compartida, presentar
+antivirus, malware, virus, amenaza, infeccion
+escanear, escaner, escaneo, digitalizar
+bluetooth, auriculares inalambricos
+borrado, eliminado, recuperar, restaurar, version anterior
+actualizacion, parche, update

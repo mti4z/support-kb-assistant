@@ -1,9 +1,11 @@
+import json
 import os
+import re
 import secrets
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
 from app.analytics import log_query, report, save_feedback
@@ -34,9 +36,23 @@ def _source(p: dict) -> dict:
 INDEX_HTML = Path(__file__).parent / "static" / "index.html"
 
 
+EMAIL_RE = re.compile(r"^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$")
+
+
 @app.get("/", include_in_schema=False)
 def home():
-    return FileResponse(INDEX_HTML)
+    """The page. CONTACT_EMAIL (environment variable) fills the contact button,
+    so the address does not have to be written in the source code."""
+    html = INDEX_HTML.read_text(encoding="utf-8")
+    email = os.environ.get("CONTACT_EMAIL", "").strip()
+    if EMAIL_RE.match(email):
+        html = re.sub(
+            r'var CONTACT_EMAIL = "[^"]*";',
+            lambda _: f"var CONTACT_EMAIL = {json.dumps(email)};",
+            html,
+            count=1,
+        )
+    return HTMLResponse(html)
 
 
 @app.get("/health")

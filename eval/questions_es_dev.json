@@ -1,0 +1,146 @@
+[
+ {
+  "q": "Saltó una alerta de virus en mi equipo, ¿qué hago?",
+  "expected": "antivirus-alert"
+ },
+ {
+  "q": "Windows se cayó con un código de error y la pantalla se puso azul",
+  "expected": "blue-screen-errors"
+ },
+ {
+  "q": "Mi headset bluetooth no aparece para emparejar",
+  "expected": "bluetooth-pairing"
+ },
+ {
+  "q": "Chrome va muy lento y se queda mostrando una versión vieja de la página",
+  "expected": "browser-problems"
+ },
+ {
+  "q": "Los eventos de mi agenda no se ven en el celular",
+  "expected": "calendar-sync"
+ },
+ {
+  "q": "Los mensajes del chat me llegan tarde",
+  "expected": "chat-notifications"
+ },
+ {
+  "q": "Mi monitor externo no es detectado por la laptop",
+  "expected": "external-monitor"
+ },
+ {
+  "q": "Sobrescribí una presentación con la versión equivocada",
+  "expected": "file-recovery"
+ },
+ {
+  "q": "El teclado escribe caracteres que no son los que aprieto",
+  "expected": "keyboard-mouse"
+ },
+ {
+  "q": "El archivo es demasiado grande para adjuntarlo en el correo",
+  "expected": "large-file-sharing"
+ },
+ {
+  "q": "Perdí el celular de trabajo, ¿qué hago?",
+  "expected": "lost-or-stolen-device"
+ },
+ {
+  "q": "El código del autenticador me lo rechaza",
+  "expected": "mfa-setup"
+ },
+ {
+  "q": "Cómo agrego mi cuenta de correo corporativa al iPhone",
+  "expected": "mobile-email-setup"
+ },
+ {
+  "q": "Soy nuevo en la empresa, ¿cómo pido mis accesos?",
+  "expected": "new-employee-onboarding"
+ },
+ {
+  "q": "Dejo la empresa, ¿cómo devuelvo mi equipo?",
+  "expected": "offboarding-equipment-return"
+ },
+ {
+  "q": "Mi casilla de correo está llena y no recibo mensajes",
+  "expected": "outlook-email-sync"
+ },
+ {
+  "q": "Mi cuenta quedó bloqueada por intentos fallidos de contraseña",
+  "expected": "password-reset"
+ },
+ {
+  "q": "¿Cómo reporto un correo de phishing?",
+  "expected": "phishing-reporting"
+ },
+ {
+  "q": "Se atascó un trabajo en la cola de impresión",
+  "expected": "printer-not-working"
+ },
+ {
+  "q": "Pantalla negra al usar escritorio remoto",
+  "expected": "remote-desktop"
+ },
+ {
+  "q": "El escáner de la oficina no me envía el documento",
+  "expected": "scanning-documents"
+ },
+ {
+  "q": "Los participantes ven un rectángulo negro cuando comparto la pantalla",
+  "expected": "screen-sharing"
+ },
+ {
+  "q": "Me aparece acceso denegado al abrir la unidad de red",
+  "expected": "shared-drive-access"
+ },
+ {
+  "q": "La computadora tarda muchísimo en arrancar",
+  "expected": "slow-computer"
+ },
+ {
+  "q": "¿Puedo instalar Slack en mi equipo de trabajo?",
+  "expected": "software-install-requests"
+ },
+ {
+  "q": "Mi disco externo no aparece en el explorador",
+  "expected": "usb-device-not-recognized"
+ },
+ {
+  "q": "No se escucha el sonido de la reunión de Teams",
+  "expected": "video-call-audio-issues"
+ },
+ {
+  "q": "La VPN se conecta pero no puedo entrar a los sitios internos",
+  "expected": "vpn-connection-issues"
+ },
+ {
+  "q": "No encuentro la red wifi de la oficina",
+  "expected": "wifi-troubleshooting"
+ },
+ {
+  "q": "Windows no logra instalar las últimas actualizaciones",
+  "expected": "windows-update-issues"
+ },
+ {
+  "q": "¿Cómo reservo una sala de reuniones?",
+  "expected": null
+ },
+ {
+  "q": "¿Cómo cambio la contraseña de mi cuenta de Netflix?",
+  "expected": null
+ },
+ {
+  "q": "¿Cuál es la capital de Francia?",
+  "expected": null
+ },
+ {
+  "q": "¿Cómo se prepara una pizza?",
+  "expected": null
+ },
+ {
+  "q": "¿Cómo pido días de licencia?",
+  "expected": null
+ },
+ {
+  "q": "¿Qué hora es en Tokio?",
+  "expected": null
+ }
+]

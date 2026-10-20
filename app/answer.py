@@ -8,10 +8,13 @@ If the API call fails for any reason we fall back to the extractive answer.
 """
 import os
 
-NO_ANSWER = (
-    "I could not find an article that answers this. "
-    "Please open a ticket with the service desk."
-)
+from app.lang import detect_language
+
+NO_ANSWERS = {
+    "en": "I could not find an article that answers this. Please open a ticket with the service desk.",
+    "es": "No encontré un artículo que responda esto. Por favor abrí un ticket con el servicio de soporte.",
+}
+NO_ANSWER = NO_ANSWERS["en"]  # kept for code that imports the English text
 
 MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-5-5")
 
@@ -19,7 +22,8 @@ SYSTEM_PROMPT = (
     "You are an IT support assistant. Answer the user's question using ONLY the "
     "passages provided. Be concise and give steps as a short list when useful. "
     "Mention the article title(s) you used. If the passages do not contain the "
-    "answer, say you don't know and suggest opening a ticket."
+    "answer, say you don't know and suggest opening a ticket. "
+    "Reply in the same language as the user's question."
 )
 
 
@@ -49,6 +53,7 @@ def build_context(passages: list[dict], max_articles: int = 2) -> str:
     """
     if os.environ.get("ANSWER_CONTEXT", "article") == "passages":
         return _format(passages[:3])
+    lang = passages[0].get("lang", "en")
     slugs: list[str] = []
     for p in passages:
         if p["slug"] not in slugs:
@@ -60,8 +65,9 @@ def build_context(passages: list[dict], max_articles: int = 2) -> str:
         with connect() as conn:
             for slug in slugs[:max_articles]:
                 items += conn.execute(
-                    "SELECT title, heading, content FROM chunks WHERE slug = %s ORDER BY id",
-                    (slug,),
+                    "SELECT title, heading, content FROM chunks "
+                    "WHERE slug = %s AND lang = %s ORDER BY id",
+                    (slug, lang),
                 ).fetchall()
         if items:
             return _format(items)
@@ -89,7 +95,7 @@ def _with_claude(question: str, passages: list[dict]) -> str:
 def build_answer(question: str, passages: list[dict]) -> tuple[str, str]:
     """Return (answer, mode)."""
     if not passages:
-        return NO_ANSWER, "no_match"
+        return NO_ANSWERS[detect_language(question)], "no_match"
     if os.environ.get("ANTHROPIC_API_KEY"):
         try:
             return _with_claude(question, passages), "claude"

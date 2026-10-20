@@ -13,6 +13,7 @@ import os
 import re
 
 from app.db import connect
+from app.lang import TS_CONFIG, detect_language, strip_accents
 
 # Below this normalized score we treat the question as "not covered by the
 # knowledge base" instead of returning a weak guess. Tuned with eval/run_eval.py.
@@ -20,14 +21,17 @@ MIN_SCORE = 0.2
 
 SEARCH_SQL = """
 WITH q AS (
-    SELECT to_tsquery('english',
-        NULLIF(replace(plainto_tsquery('english', %(question)s)::text, '&', '|'), '')
+    -- plainto_tsquery already stems the words; to_tsquery must not stem them a
+    -- second time (with the Spanish stemmer "contrasen" would become "contr"),
+    -- so it uses the 'simple' configuration.
+    SELECT to_tsquery('simple',
+        NULLIF(replace(plainto_tsquery(%(config)s::regconfig, %(question)s)::text, '&', '|'), '')
     ) AS query
 )
-SELECT c.slug, c.title, c.heading, c.content,
+SELECT c.slug, c.lang, c.title, c.heading, c.content,
        ts_rank_cd(c.tsv, q.query, 32) AS score
 FROM chunks c, q
-WHERE c.tsv @@ q.query
+WHERE c.lang = %(lang)s AND c.tsv @@ q.query
 ORDER BY score DESC
 LIMIT %(limit)s
 """
@@ -37,11 +41,12 @@ def synonyms_enabled() -> bool:
     return os.environ.get("USE_SYNONYMS", "1") != "0"
 
 
-def expand_query(question: str, conn) -> str:
+def expand_query(question: str, conn, lang: str = "en") -> str:
     """Add the synonyms of every known word or phrase found in the question."""
-    text = " " + re.sub(r"[^a-z0-9]+", " ", question.lower()).strip() + " "
+    text = " " + re.sub(r"[^a-z0-9]+", " ", strip_accents(question).lower()).strip() + " "
     groups: dict[int, list[str]] = {}
-    for row in conn.execute("SELECT group_id, term FROM synonyms").fetchall():
+    rows = conn.execute("SELECT group_id, term FROM synonyms WHERE lang = %s", (lang,)).fetchall()
+    for row in rows:
         groups.setdefault(row["group_id"], []).append(row["term"])
 
     extra: list[str] = []
@@ -57,11 +62,19 @@ def search(
     limit: int = 5,
     min_score: float = MIN_SCORE,
     synonyms: bool | None = None,
+    lang: str | None = None,
 ) -> list[dict]:
+    """Search the articles written in the language of the question (or `lang`)."""
     if not question.strip():
         return []
+    lang = lang or detect_language(question)
     use_synonyms = synonyms_enabled() if synonyms is None else synonyms
     with connect() as conn:
-        query_text = expand_query(question, conn) if use_synonyms else question
-        rows = conn.execute(SEARCH_SQL, {"question": query_text, "limit": limit}).fetchall()
+        query_text = expand_query(question, conn, lang) if use_synonyms else question
+        if lang == "es":
+            query_text = strip_accents(query_text)
+        rows = conn.execute(
+            SEARCH_SQL,
+            {"question": query_text, "limit": limit, "lang": lang, "config": TS_CONFIG[lang]},
+        ).fetchall()
     return [r for r in rows if r["score"] >= min_score]

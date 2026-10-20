@@ -1,0 +1,154 @@
+[
+ {
+  "q": "Me salió un cartel del antivirus diciendo que encontró una amenaza",
+  "expected": "antivirus-alert"
+ },
+ {
+  "q": "La compu se puso con pantalla azul y se reinició sola",
+  "expected": "blue-screen-errors"
+ },
+ {
+  "q": "No logro conectar mis auriculares inalámbricos a la notebook",
+  "expected": "bluetooth-pairing"
+ },
+ {
+  "q": "Las páginas web cargan lentísimo en el navegador",
+  "expected": "browser-problems"
+ },
+ {
+  "q": "No me llegan las invitaciones a reuniones al calendario",
+  "expected": "calendar-sync"
+ },
+ {
+  "q": "No me suena ninguna notificación cuando me escriben por el chat",
+  "expected": "chat-notifications"
+ },
+ {
+  "q": "El segundo monitor no da imagen cuando lo conecto",
+  "expected": "external-monitor"
+ },
+ {
+  "q": "Borré sin querer un archivo importante, ¿se puede recuperar?",
+  "expected": "file-recovery"
+ },
+ {
+  "q": "El mouse inalámbrico dejó de responder",
+  "expected": "keyboard-mouse"
+ },
+ {
+  "q": "¿Cómo le mando un archivo muy pesado a un cliente? El mail lo rebota",
+  "expected": "large-file-sharing"
+ },
+ {
+  "q": "Me robaron la notebook de la empresa en el colectivo",
+  "expected": "lost-or-stolen-device"
+ },
+ {
+  "q": "Cambié de celular y ahora no puedo usar la verificación en dos pasos",
+  "expected": "mfa-setup"
+ },
+ {
+  "q": "Quiero configurar el correo de la empresa en mi teléfono",
+  "expected": "mobile-email-setup"
+ },
+ {
+  "q": "Entro a trabajar el lunes, ¿qué cuentas y equipos me van a dar?",
+  "expected": "new-employee-onboarding"
+ },
+ {
+  "q": "Es mi última semana, ¿qué tengo que devolver?",
+  "expected": "offboarding-equipment-return"
+ },
+ {
+  "q": "Outlook no sincroniza y los mails quedan en la bandeja de salida",
+  "expected": "outlook-email-sync"
+ },
+ {
+  "q": "Olvidé mi contraseña de la cuenta de trabajo",
+  "expected": "password-reset"
+ },
+ {
+  "q": "Recibí un mail sospechoso que me pide mis datos del banco, ¿a quién aviso?",
+  "expected": "phishing-reporting"
+ },
+ {
+  "q": "La impresora aparece desconectada y no imprime nada",
+  "expected": "printer-not-working"
+ },
+ {
+  "q": "Quiero conectarme desde casa a la computadora de la oficina",
+  "expected": "remote-desktop"
+ },
+ {
+  "q": "¿Cómo escaneo un papel y me lo mando por correo?",
+  "expected": "scanning-documents"
+ },
+ {
+  "q": "El botón de compartir pantalla está deshabilitado en la videollamada",
+  "expected": "screen-sharing"
+ },
+ {
+  "q": "No tengo permiso para entrar a la carpeta compartida del área",
+  "expected": "shared-drive-access"
+ },
+ {
+  "q": "Mi pc anda muy lenta y se cuelga todo el tiempo",
+  "expected": "slow-computer"
+ },
+ {
+  "q": "Necesito instalar un programa que no está en la lista aprobada",
+  "expected": "software-install-requests"
+ },
+ {
+  "q": "Conecto un pendrive y la computadora no lo reconoce",
+  "expected": "usb-device-not-recognized"
+ },
+ {
+  "q": "En las reuniones no me escuchan, el micrófono no anda",
+  "expected": "video-call-audio-issues"
+ },
+ {
+  "q": "No me puedo conectar a la VPN desde mi casa",
+  "expected": "vpn-connection-issues"
+ },
+ {
+  "q": "El wifi se corta todo el tiempo en mi laptop",
+  "expected": "wifi-troubleshooting"
+ },
+ {
+  "q": "La actualización de Windows lleva horas trabada",
+  "expected": "windows-update-issues"
+ },
+ {
+  "q": "¿Cuántos días de vacaciones me quedan?",
+  "expected": null
+ },
+ {
+  "q": "¿Dónde presento mis horas trabajadas?",
+  "expected": null
+ },
+ {
+  "q": "¿Qué tiempo va a hacer mañana?",
+  "expected": null
+ },
+ {
+  "q": "Recomendame una buena notebook para comprar",
+  "expected": null
+ },
+ {
+  "q": "¿Cómo borro mi cuenta de Instagram?",
+  "expected": null
+ },
+ {
+  "q": "¿Quién es el gerente de sistemas?",
+  "expected": null
+ },
+ {
+  "q": "¿A qué hora abre el comedor?",
+  "expected": null
+ },
+ {
+  "q": "¿Cómo pido el reintegro de gastos?",
+  "expected": null
+ }
+]

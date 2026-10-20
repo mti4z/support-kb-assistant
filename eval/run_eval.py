@@ -30,6 +30,8 @@ SETS = {
     "heldout": HERE / "questions_heldout.json",
     "test": HERE / "questions_test.json",
     "test_v2": HERE / "questions_test_v2.json",
+    "es_dev": HERE / "questions_es_dev.json",
+    "es_test": HERE / "questions_es_test.json",
 }
 
 

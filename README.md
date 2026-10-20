@@ -9,21 +9,23 @@ I built it to connect my IT support background (Google IT Support certificate) w
 ## What it does
 
 - Answers a question with the best matching passage and shows the articles it came from. If nothing is relevant enough, it says so instead of guessing.
-- Understands that "PC", "notebook" and "computer" mean the same thing, using a synonym table stored in PostgreSQL.
+- Works in **English and Spanish**: it detects the language of the question and answers from the articles written in that language (the same 30 articles exist in both).
+- Understands that "PC", "notebook" and "computer" (or "compu", "notebook" and "computadora") mean the same thing, using synonym tables stored in PostgreSQL.
 - Stores every question and a "Was this helpful?" vote, and reports the most frequent unanswered questions. In support, each of them is an article that should be written.
 - Has a simple web page, so it can be tried without knowing anything about APIs.
 
 ## How it works
 
 ```
-question -> expand with synonyms -> PostgreSQL full-text search (weighted, ranked) -> top passages
+question -> detect language -> expand with synonyms -> PostgreSQL full-text search (weighted, ranked) -> top passages
          -> answer: best passage (default) or Claude, grounded only on those passages
          -> response with sources, or "no match"; the question is logged either way
 ```
 
-- **Chunking:** each article in `data/articles/` is split by `##` section, so results are specific passages.
+- **Chunking:** each article in `data/articles/` (English) and `data/articles_es/` (Spanish, same file names) is split by `##` section, so results are specific passages.
+- **Language** (`app/lang.py`): a small word-based detector picks English or Spanish (no dependencies). Each language uses its own PostgreSQL stemmer, and Spanish is searched without accents, because people often type without them.
 - **Retrieval** (`app/search.py`): the question becomes an OR query over stemmed keywords, ranked with `ts_rank_cd` (title > heading > body).
-- **Synonyms** (`data/synonyms.txt`): groups of equivalent words are loaded into a table by `app/ingest.py`. If a question contains a word of a group (plurals and multi-word terms included), the rest of the group is added to the search.
+- **Synonyms** (`data/synonyms.txt` and `data/synonyms_es.txt`): groups of equivalent words are loaded into a table by `app/ingest.py`. If a question contains a word of a group (plurals and multi-word terms included), the rest of the group is added to the search.
 - **Abstaining:** below a score threshold the API says it does not know.
 - **Generation (optional):** with `ANTHROPIC_API_KEY`, Claude answers using only the retrieved passages. Without a key, or if the call fails, it returns the best passage.
 - **Question log** (`app/analytics.py`): each question is stored with whether it was answered, the best article and the user's vote. Logging never breaks an answer.
@@ -64,10 +66,11 @@ Interactive docs at `/docs`.
 | `ADMIN_TOKEN` | Secret for `/admin/report`. If it is not set, the endpoint does not exist (404) |
 | `ANTHROPIC_API_KEY` | Optional: lets Claude write the answers |
 | `USE_SYNONYMS` | Set to `0` to turn synonym expansion off |
+| `CONTACT_EMAIL` | Optional: fills the "Get in touch" button of the page, so the address is not in the source code |
 
 ## Evaluation
 
-Four question sets, written in different words than the articles. Each has answerable questions (with the expected article) and out-of-scope ones.
+Six question sets (four in English, two in Spanish), written in different words than the articles. Each has answerable questions (with the expected article) and out-of-scope ones.
 
 | Set | Questions | Role |
 |---|---|---|
@@ -75,6 +78,8 @@ Four question sets, written in different words than the articles. Each has answe
 | `heldout` | 14 + 4 | Written separately, but I had seen its failures when I wrote the synonyms |
 | `test` | 16 + 6 | Written **before** the synonyms and run only once, at the end |
 | `test_v2` | 32 + 8 | Written **before** the 16 articles that doubled the knowledge base (14 to 30), run once after freezing everything |
+| `es_dev` | 30 + 6 | Spanish. Used to write the Spanish synonyms |
+| `es_test` | 30 + 8 | Spanish. Written **before** the Spanish articles and synonyms; see below for what happened when I ran it |
 
 ```bash
 python -m eval.run_eval --verbose
@@ -104,6 +109,21 @@ Same questions after growing the knowledge base to 30 articles, plus the new bli
 | **test_v2** | off | 0.84 | 0.94 | 0.89 | 0.12 |
 | **test_v2** | on | **0.84** | **1.00** | **0.92** | 0.12 |
 
+Spanish (30 articles in Spanish, 182 passages in total):
+
+| Set | Synonyms | hit@1 | hit@3 | MRR | Abstain |
+|---|---|---|---|---|---|
+| es_dev | off | 0.77 | 0.90 | 0.83 | 0.50 |
+| es_dev | on | 0.83 | 0.93 | 0.89 | 0.50 |
+| es_test, first run (blind) | off | 0.70 | 0.87 | 0.79 | 0.38 |
+| es_test, first run (blind) | on | 0.90 | 0.93 | 0.92 | 0.25 |
+| es_test, after the fix below | off | 0.77 | 0.93 | 0.84 | 0.38 |
+| es_test, after the fix below | on | 0.93 | 0.97 | 0.95 | 0.25 |
+
+**What happened with `es_test`.** Its first run was blind, and it showed failures that made no sense (for example "Olvidé mi contraseña de la cuenta de trabajo" did not find the password article). Looking into them I found a bug: the search stemmed the words twice, which is harmless in English but breaks Spanish ("contrasen" became "contr"). I fixed it and ran `es_test` again, so the second run is **not blind any more**; I report both. The English results did not change with the fix.
+
+The language detector classified all 178 questions of the six sets correctly, but I wrote those questions myself, so that is an easy test.
+
 hit@1 / hit@3: the expected article is the first result / among the first three. MRR: mean reciprocal rank. Abstain: share of out-of-scope questions correctly answered with "no match".
 
 ### What the results say
@@ -114,6 +134,7 @@ hit@1 / hit@3: the expected article is the first result / among the first three.
 - **On new topics the result holds.** On `test_v2`, written before the new articles, the right article is among the first three 100% of the time with synonyms (94% without). hit@1 is 0.84 either way, so on these questions synonyms mostly help the right article reach the top three.
 - **Refusing off-topic questions got worse.** "How do I reset my Netflix password?" still matches the password article, and a score threshold cannot tell the difference. With 30 articles more out-of-scope questions share words with some article ("Can you recommend a good monitor to buy?" matches the monitor article), and abstention fell to 12% on `test_v2`. I added synonym groups for the new topics after seeing how the old sets behaved, but I wrote the `test_v2` questions knowing the topic list, so treat its numbers as slightly optimistic.
 - **Synonyms add some noise.** In `heldout`, "I left my laptop on the train" dropped from first to second place, because "laptop" also pulls in articles about slow computers.
+- **Spanish works about as well as English, but refuses worse.** With synonyms, first-result accuracy is 0.83 to 0.93 on the Spanish sets, but only 25% of out-of-scope questions are rejected by search alone (English `test_v2`: 12%, `test`: 17%, so both are weak). Frequent Spanish words such as "equipo", "cuenta" and "trabajo" appear in many articles and pull in the wrong ones.
 - **The sets are small.** One question is 6 to 7 points of hit@k, and I wrote both the synonyms and the questions, so treat the differences as an indication, not a proof.
 
 ### Evaluating the answers written by Claude
@@ -167,7 +188,7 @@ Render (web service) and Neon (PostgreSQL), both on free plans.
 pytest -q
 ```
 
-25 tests cover parsing, search, synonyms, the API, the question log, feedback and the admin report. They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
+34 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback and the admin report. They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
 
 CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 
@@ -176,4 +197,4 @@ CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 - The knowledge base is small: 30 articles, and 14 to 32 answerable questions per evaluation set.
 - Refusing out-of-scope questions is weak (see above). A relevance check on the generated answer, or a classifier, could help.
 - No rate limiting: someone could fill the question log.
-- Next: add articles guided by the unanswered-questions report, grow the evaluation sets (ideally with questions written by someone else), and try a real sentence-embedding model for semantic search.
+- Next: write Spanish stop-word and synonym lists tuned on more questions, improve how out-of-scope questions are rejected, add articles guided by the unanswered-questions report, grow the evaluation sets (ideally with questions written by someone else), and try a real sentence-embedding model for semantic search.

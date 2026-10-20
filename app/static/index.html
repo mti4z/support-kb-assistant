@@ -191,7 +191,7 @@
 (function () {
   // Set this to the address that should receive inquiries. While it is empty,
   // the contact section stays hidden.
-  var CONTACT_EMAIL = "matiasinfante43@gmail.com";
+  var CONTACT_EMAIL = "";
 
   var T = {
     en: {
@@ -207,8 +207,8 @@
       ctaTitle: "Want this on your own documentation?",
       ctaText: "This demo runs on 30 sample articles. I am looking for a few teams to try it with their own support documents.",
       ctaButton: "Get in touch", mailSubject: "Support KB Assistant",
-      footer: "Demo with 30 sample support articles.", source: "Source code",
-      note: "",
+      footer: "Demo with 30 sample support articles, in English and Spanish.", source: "Source code",
+      note: "Ask in English or Spanish: the demo answers in the language of your question.",
       feedback: "Was this helpful?", yes: "Yes", no: "No", thanks: "Thanks for the feedback.", feedbackFail: "Could not save your feedback.",
       noMatchTitle: "No matching article", answerTitle: "Answer", sources: "Sources",
       badgeClaude: "written by Claude from the sources", badgePassage: "best matching passage",
@@ -221,7 +221,7 @@
     es: {
       lead: "Responde preguntas repetidas de soporte IT a partir de una base de conocimiento, muestra los art\u00EDculos de cada respuesta y avisa cuando no sabe.",
       label: "Tu pregunta", ask: "Preguntar", try: "Prob\u00E1:",
-      placeholder: "p. ej. I can't connect to the VPN from home",
+      placeholder: "p. ej. No me puedo conectar a la VPN desde casa",
       howTitle: "C\u00F3mo funciona",
       how1t: "1. Pregunt\u00E1s con tus palabras", how1d: "Entiende sin\u00F3nimos: \u201Claptop\u201D, \u201Cnotebook\u201D y \u201Ccomputer\u201D significan lo mismo.",
       how2t: "2. Busca en la base de conocimiento", how2d: "La b\u00FAsqueda de texto completo de PostgreSQL ordena los pasajes m\u00E1s relevantes.",
@@ -231,8 +231,8 @@
       ctaTitle: "\u00BFQuer\u00E9s esto con tu propia documentaci\u00F3n?",
       ctaText: "Este demo usa 30 art\u00EDculos de ejemplo. Busco algunos equipos para probarlo con sus propios documentos de soporte.",
       ctaButton: "Escribime", mailSubject: "Support KB Assistant",
-      footer: "Demo con 30 art\u00EDculos de soporte de ejemplo.", source: "C\u00F3digo fuente",
-      note: "Los art\u00EDculos del demo est\u00E1n en ingl\u00E9s, as\u00ED que pregunt\u00E1 en ingl\u00E9s. El soporte para documentos en espa\u00F1ol est\u00E1 en desarrollo.",
+      footer: "Demo con 30 art\u00EDculos de soporte de ejemplo, en espa\u00F1ol e ingl\u00E9s.", source: "C\u00F3digo fuente",
+      note: "Pod\u00E9s preguntar en espa\u00F1ol o en ingl\u00E9s: el demo responde en el idioma de tu pregunta.",
       feedback: "\u00BFTe sirvi\u00F3?", yes: "S\u00ED", no: "No", thanks: "Gracias por tu opini\u00F3n.", feedbackFail: "No se pudo guardar tu opini\u00F3n.",
       noMatchTitle: "No hay un art\u00EDculo que coincida", answerTitle: "Respuesta", sources: "Fuentes",
       badgeClaude: "redactada por Claude a partir de las fuentes", badgePassage: "pasaje m\u00E1s relevante",
@@ -240,7 +240,7 @@
       short: "Escrib\u00ED una pregunta de al menos 3 caracteres.", len: "Escrib\u00ED una pregunta de entre 3 y 500 caracteres.",
       serverError: "El servidor respondi\u00F3 con un error", timeout: "El servidor tard\u00F3 demasiado en responder. Prob\u00E1 de nuevo en un momento.",
       generic: "Algo sali\u00F3 mal. Prob\u00E1 de nuevo.", errorTitle: "No se pudo obtener una respuesta",
-      examples: ["I can't connect to the VPN from home", "The printer says it is offline", "Someone stole my work laptop", "What is the capital of France?"]
+      examples: ["No me puedo conectar a la VPN desde casa", "La impresora aparece desconectada", "Me robaron la notebook de la empresa", "\u00BFCu\u00E1l es la capital de Francia?"]
     }
   };
 

@@ -227,3 +227,60 @@ def test_build_context_uses_whole_top_articles(monkeypatch):
     assert "Pairing a device" in full  # the section that only the full article brings
     monkeypatch.setenv("ANSWER_CONTEXT", "passages")
     assert full.count("[") >= build_context(passages).count("[")
+
+
+# ---- Spanish support -------------------------------------------------------
+def test_detect_language_and_accents():
+    from app.lang import detect_language, strip_accents
+
+    assert detect_language("I forgot my password") == "en"
+    assert detect_language("Olvidé mi contraseña") == "es"
+    assert detect_language("mi impresora no imprime") == "es"
+    assert detect_language("wifi") == "en"  # unknown text counts as English
+    assert strip_accents("Conexión inalámbrica") == "Conexion inalambrica"
+
+
+def test_every_english_article_has_a_spanish_twin_with_the_same_slug():
+    from app.ingest import SOURCES
+
+    (_, en_dir, _), (_, es_dir, _) = SOURCES
+    assert {p.stem for p in en_dir.glob("*.md")} == {p.stem for p in es_dir.glob("*.md")}
+
+
+def test_spanish_question_is_answered_from_spanish_articles():
+    results = search("Mi impresora aparece desconectada y no imprime")
+    assert results and results[0]["slug"] == "printer-not-working"
+    assert all(r["lang"] == "es" for r in results)
+    english = search("My printer is offline")
+    assert english and all(r["lang"] == "en" for r in english)
+
+
+def test_spanish_search_ignores_accents():
+    with_accents = search("¿Cómo restablezco mi contraseña olvidada?")
+    without = search("como restablezco mi contrasena olvidada")
+    assert with_accents and without
+    assert with_accents[0]["slug"] == without[0]["slug"] == "password-reset"
+
+
+def test_spanish_synonyms_only_apply_to_spanish():
+    from app.search import expand_query
+
+    with connect() as conn:
+        assert "ordenador" in expand_query("mi compu está lenta", conn, "es")
+        assert "ordenador" not in expand_query("my pc is slow", conn, "en")
+
+
+def test_ask_answers_no_match_in_the_language_of_the_question():
+    client = TestClient(app)
+    data = client.post("/ask", json={"question": "zzzz qqqq xxxx ¿qué es eso?"}).json()
+    assert data["mode"] == "no_match" and "No encontré" in data["answer"]
+
+
+def test_home_page_gets_the_contact_email_from_the_environment(monkeypatch):
+    client = TestClient(app)
+    monkeypatch.delenv("CONTACT_EMAIL", raising=False)
+    assert 'var CONTACT_EMAIL = "";' in client.get("/").text
+    monkeypatch.setenv("CONTACT_EMAIL", "hola@example.com")
+    assert 'var CONTACT_EMAIL = "hola@example.com";' in client.get("/").text
+    monkeypatch.setenv("CONTACT_EMAIL", 'x";alert(1);//')  # not an email: ignored
+    assert "alert(1)" not in client.get("/").text
