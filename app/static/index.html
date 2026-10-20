@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Support KB Assistant</title>
 <link rel="icon" href="data:,">
-<meta name="description" content="Ask an IT support question and get an answer from a knowledge base, with sources.">
+<meta name="description" content="An assistant that answers repeated IT support questions from a knowledge base, with sources, and says when it does not know.">
 <style>
   :root {
     --bg: #f6f7f9;
@@ -102,7 +102,30 @@
   .feedback .chip:disabled { opacity: .6; cursor: default; }
   footer { margin-top: 40px; color: var(--muted); font-size: .9rem; }
   footer a { color: var(--accent); }
+  .topbar { display: flex; justify-content: flex-end; margin: 0 0 12px; }
+  .lang { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+  .lang button {
+    padding: 4px 12px; font-size: .85rem; font-weight: 600;
+    background: transparent; color: var(--muted); border-radius: 0;
+  }
+  .lang button[aria-pressed="true"] { background: var(--accent-soft); color: var(--text); }
+  .note { margin: 10px 0 0; color: var(--muted); font-size: .9rem; }
+  section.block { margin-top: 40px; }
+  section.block h2 { font-size: 1.1rem; margin: 0 0 12px; }
+  .steps { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+  .steps li { padding: 14px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .steps strong { display: block; margin-bottom: 2px; }
+  .steps span { color: var(--muted); }
+  .cta { padding: 20px; background: var(--accent-soft); border: 1px solid var(--line); border-radius: 12px; }
+  .cta h2 { margin: 0 0 6px; }
+  .cta p { margin: 0 0 14px; color: var(--muted); }
+  a.button {
+    display: inline-block; padding: 12px 20px; border-radius: 10px;
+    background: var(--accent); color: var(--accent-text);
+    font-weight: 600; text-decoration: none;
+  }
   @media (max-width: 480px) {
+    a.button { display: block; text-align: center; }
     main { padding-top: 28px; }
     .row { flex-direction: column; }
     #ask-button { width: 100%; }
@@ -111,57 +134,135 @@
 </head>
 <body>
 <main>
+  <div class="topbar">
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="es" aria-pressed="false">ES</button>
+    </div>
+  </div>
+
   <h1>Support KB Assistant</h1>
-  <p class="lead">Ask an IT support question. The answer comes from a small knowledge base, and every answer shows its sources.</p>
+  <p class="lead" data-i18n="lead"></p>
 
   <form id="ask-form" autocomplete="off">
-    <label for="question">Your question</label>
+    <label for="question" data-i18n="label"></label>
     <div class="row">
-      <input id="question" type="text" maxlength="500" required placeholder="e.g. I can't connect to the VPN from home">
-      <button id="ask-button" type="submit">Ask</button>
+      <input id="question" type="text" maxlength="500" required>
+      <button id="ask-button" type="submit" data-i18n="ask"></button>
     </div>
   </form>
 
   <div class="examples" id="examples">
-    <span>Try:</span>
+    <span data-i18n="try"></span>
   </div>
+  <p class="note" id="lang-note" hidden></p>
 
   <p id="status" role="status" aria-live="polite"></p>
   <div id="result"></div>
 
+  <section class="block" aria-labelledby="how-title">
+    <h2 id="how-title" data-i18n="howTitle"></h2>
+    <ol class="steps">
+      <li><strong data-i18n="how1t"></strong><span data-i18n="how1d"></span></li>
+      <li><strong data-i18n="how2t"></strong><span data-i18n="how2d"></span></li>
+      <li><strong data-i18n="how3t"></strong><span data-i18n="how3d"></span></li>
+    </ol>
+  </section>
+
+  <section class="block" aria-labelledby="data-title">
+    <h2 id="data-title" data-i18n="dataTitle"></h2>
+    <p data-i18n="dataText"></p>
+  </section>
+
+  <section class="block cta" id="contact" hidden aria-labelledby="cta-title">
+    <h2 id="cta-title" data-i18n="ctaTitle"></h2>
+    <p data-i18n="ctaText"></p>
+    <a class="button" id="contact-link" href="#" data-i18n="ctaButton"></a>
+  </section>
+
   <footer>
-    Demo with 30 sample support articles. Questions you ask are stored to improve the knowledge base, so please don't include personal information.<br>
-    <a href="/docs">API docs</a> ·
-    <a href="https://github.com/mti4z/support-kb-assistant">Source code</a>
+    <span data-i18n="footer"></span><br>
+    <a href="/docs">API docs</a> &middot;
+    <a href="https://github.com/mti4z/support-kb-assistant" data-i18n="source"></a>
   </footer>
 </main>
 
 <script>
 (function () {
-  var EXAMPLES = [
-    "I can't connect to the VPN from home",
-    "The printer says it is offline",
-    "Someone stole my work laptop",
-    "What is the capital of France?"
-  ];
+  // Set this to the address that should receive inquiries. While it is empty,
+  // the contact section stays hidden.
+  var CONTACT_EMAIL = "";
+
+  var T = {
+    en: {
+      lead: "Answers repeated IT support questions from a knowledge base, shows the articles behind every answer, and says so when it does not know.",
+      label: "Your question", ask: "Ask", try: "Try:",
+      placeholder: "e.g. I can't connect to the VPN from home",
+      howTitle: "How it works",
+      how1t: "1. You ask in plain words", how1d: "Synonyms are understood: \u201Claptop\u201D, \u201Cnotebook\u201D and \u201Ccomputer\u201D mean the same.",
+      how2t: "2. It searches the knowledge base", how2d: "PostgreSQL full-text search ranks the most relevant passages.",
+      how3t: "3. The answer uses only those passages", how3d: "Every answer cites its sources, and Claude can write it in full sentences. If nothing relevant is found, it says so instead of guessing.",
+      dataTitle: "Your data",
+      dataText: "Questions are stored to improve the knowledge base: the text, the time, whether it was answered, the best article and your vote. No name, IP address or account data is stored. Please do not type personal information.",
+      ctaTitle: "Want this on your own documentation?",
+      ctaText: "This demo runs on 30 sample articles. I am looking for a few teams to try it with their own support documents.",
+      ctaButton: "Get in touch", mailSubject: "Support KB Assistant",
+      footer: "Demo with 30 sample support articles.", source: "Source code",
+      note: "",
+      feedback: "Was this helpful?", yes: "Yes", no: "No", thanks: "Thanks for the feedback.", feedbackFail: "Could not save your feedback.",
+      noMatchTitle: "No matching article", answerTitle: "Answer", sources: "Sources",
+      badgeClaude: "written by Claude from the sources", badgePassage: "best matching passage",
+      searching: "Searching\u2026", waking: "The free server may be waking up. This can take up to a minute\u2026",
+      short: "Please write a question with at least 3 characters.", len: "Please write a question between 3 and 500 characters.",
+      serverError: "The server answered with an error", timeout: "The server took too long to respond. Please try again in a moment.",
+      generic: "Something went wrong. Please try again.", errorTitle: "Could not get an answer",
+      examples: ["I can't connect to the VPN from home", "The printer says it is offline", "Someone stole my work laptop", "What is the capital of France?"]
+    },
+    es: {
+      lead: "Responde preguntas repetidas de soporte IT a partir de una base de conocimiento, muestra los art\u00EDculos de cada respuesta y avisa cuando no sabe.",
+      label: "Tu pregunta", ask: "Preguntar", try: "Prob\u00E1:",
+      placeholder: "p. ej. I can't connect to the VPN from home",
+      howTitle: "C\u00F3mo funciona",
+      how1t: "1. Pregunt\u00E1s con tus palabras", how1d: "Entiende sin\u00F3nimos: \u201Claptop\u201D, \u201Cnotebook\u201D y \u201Ccomputer\u201D significan lo mismo.",
+      how2t: "2. Busca en la base de conocimiento", how2d: "La b\u00FAsqueda de texto completo de PostgreSQL ordena los pasajes m\u00E1s relevantes.",
+      how3t: "3. La respuesta usa solo esos pasajes", how3d: "Cada respuesta cita sus fuentes y Claude puede redactarla en oraciones completas. Si no encuentra nada relevante, lo dice en lugar de inventar.",
+      dataTitle: "Tus datos",
+      dataText: "Las preguntas se guardan para mejorar la base de conocimiento: el texto, la hora, si se pudo responder, el mejor art\u00EDculo y tu voto. No se guarda nombre, direcci\u00F3n IP ni datos de cuenta. Por favor no escribas informaci\u00F3n personal.",
+      ctaTitle: "\u00BFQuer\u00E9s esto con tu propia documentaci\u00F3n?",
+      ctaText: "Este demo usa 30 art\u00EDculos de ejemplo. Busco algunos equipos para probarlo con sus propios documentos de soporte.",
+      ctaButton: "Escribime", mailSubject: "Support KB Assistant",
+      footer: "Demo con 30 art\u00EDculos de soporte de ejemplo.", source: "C\u00F3digo fuente",
+      note: "Los art\u00EDculos del demo est\u00E1n en ingl\u00E9s, as\u00ED que pregunt\u00E1 en ingl\u00E9s. El soporte para documentos en espa\u00F1ol est\u00E1 en desarrollo.",
+      feedback: "\u00BFTe sirvi\u00F3?", yes: "S\u00ED", no: "No", thanks: "Gracias por tu opini\u00F3n.", feedbackFail: "No se pudo guardar tu opini\u00F3n.",
+      noMatchTitle: "No hay un art\u00EDculo que coincida", answerTitle: "Respuesta", sources: "Fuentes",
+      badgeClaude: "redactada por Claude a partir de las fuentes", badgePassage: "pasaje m\u00E1s relevante",
+      searching: "Buscando\u2026", waking: "El servidor gratuito puede estar despertando. Puede tardar hasta un minuto\u2026",
+      short: "Escrib\u00ED una pregunta de al menos 3 caracteres.", len: "Escrib\u00ED una pregunta de entre 3 y 500 caracteres.",
+      serverError: "El servidor respondi\u00F3 con un error", timeout: "El servidor tard\u00F3 demasiado en responder. Prob\u00E1 de nuevo en un momento.",
+      generic: "Algo sali\u00F3 mal. Prob\u00E1 de nuevo.", errorTitle: "No se pudo obtener una respuesta",
+      examples: ["I can't connect to the VPN from home", "The printer says it is offline", "Someone stole my work laptop", "What is the capital of France?"]
+    }
+  };
+
+  var lang = "en";
+  try {
+    var saved = localStorage.getItem("lang");
+    if (saved === "en" || saved === "es") lang = saved;
+    else if ((navigator.language || "").toLowerCase().indexOf("es") === 0) lang = "es";
+  } catch (e) {
+    if ((navigator.language || "").toLowerCase().indexOf("es") === 0) lang = "es";
+  }
+  function t(key) { return T[lang][key]; }
+
   var form = document.getElementById("ask-form");
   var input = document.getElementById("question");
   var button = document.getElementById("ask-button");
   var statusEl = document.getElementById("status");
   var resultEl = document.getElementById("result");
   var examplesEl = document.getElementById("examples");
-
-  EXAMPLES.forEach(function (text) {
-    var chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "chip";
-    chip.textContent = text;
-    chip.addEventListener("click", function () {
-      input.value = text;
-      form.requestSubmit();
-    });
-    examplesEl.appendChild(chip);
-  });
+  var noteEl = document.getElementById("lang-note");
+  var contactEl = document.getElementById("contact");
+  var contactLink = document.getElementById("contact-link");
 
   function el(tag, className, text) {
     var node = document.createElement(tag);
@@ -169,6 +270,44 @@
     if (text !== undefined) node.textContent = text;
     return node;
   }
+
+  function buildExamples() {
+    examplesEl.querySelectorAll(".chip").forEach(function (c) { c.remove(); });
+    T[lang].examples.forEach(function (text) {
+      var chip = el("button", "chip", text);
+      chip.type = "button";
+      chip.addEventListener("click", function () { input.value = text; form.requestSubmit(); });
+      examplesEl.appendChild(chip);
+    });
+  }
+
+  function applyLanguage() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i18n]").forEach(function (node) {
+      node.textContent = t(node.getAttribute("data-i18n"));
+    });
+    input.placeholder = t("placeholder");
+    noteEl.textContent = t("note");
+    noteEl.hidden = !t("note");
+    document.querySelectorAll(".lang button").forEach(function (b) {
+      b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang));
+    });
+    if (CONTACT_EMAIL) {
+      contactEl.hidden = false;
+      contactLink.href = "mailto:" + CONTACT_EMAIL + "?subject=" + encodeURIComponent(t("mailSubject"));
+    }
+    buildExamples();
+    resultEl.replaceChildren();
+    statusEl.textContent = "";
+  }
+
+  document.querySelectorAll(".lang button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      lang = b.getAttribute("data-lang");
+      try { localStorage.setItem("lang", lang); } catch (e) {}
+      applyLanguage();
+    });
+  });
 
   function showMessage(kind, title, text) {
     resultEl.replaceChildren();
@@ -191,7 +330,7 @@
 
   function addFeedback(card, queryId) {
     var box = el("div", "feedback");
-    box.appendChild(el("span", null, "Was this helpful?"));
+    box.appendChild(el("span", null, t("feedback")));
     function send(helpful) {
       box.querySelectorAll("button").forEach(function (b) { b.disabled = true; });
       fetch("/feedback", {
@@ -199,10 +338,10 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query_id: queryId, helpful: helpful })
       })
-        .then(function (r) { if (!r.ok) throw new Error(); box.textContent = "Thanks for the feedback."; })
-        .catch(function () { box.textContent = "Could not save your feedback."; });
+        .then(function (r) { if (!r.ok) throw new Error(); box.textContent = t("thanks"); })
+        .catch(function () { box.textContent = t("feedbackFail"); });
     }
-    [["Yes", true], ["No", false]].forEach(function (pair) {
+    [[t("yes"), true], [t("no"), false]].forEach(function (pair) {
       var b = el("button", "chip", pair[0]);
       b.type = "button";
       b.addEventListener("click", function () { send(pair[1]); });
@@ -213,21 +352,20 @@
 
   function render(data) {
     if (data.mode === "no_match") {
-      showMessage("warn", "No matching article", data.answer);
+      showMessage("warn", t("noMatchTitle"), data.answer);
       return;
     }
     resultEl.replaceChildren();
     var card = el("section", "card");
-    var title = el("h2", null, "Answer");
-    title.appendChild(el("span", "badge",
-      data.mode === "claude" ? "written by Claude from the sources" : "best matching passage"));
+    var title = el("h2", null, t("answerTitle"));
+    title.appendChild(el("span", "badge", data.mode === "claude" ? t("badgeClaude") : t("badgePassage")));
     card.appendChild(title);
     card.appendChild(el("p", "answer", data.answer));
 
     var sources = groupSources(data.sources || []);
     if (sources.length) {
       var box = el("div", "sources");
-      box.appendChild(el("h3", null, "Sources"));
+      box.appendChild(el("h3", null, t("sources")));
       var list = el("ul");
       sources.forEach(function (s) {
         var li = el("li");
@@ -246,18 +384,16 @@
     event.preventDefault();
     var question = input.value.trim();
     if (question.length < 3) {
-      statusEl.textContent = "Please write a question with at least 3 characters.";
+      statusEl.textContent = t("short");
       return;
     }
     button.disabled = true;
     resultEl.replaceChildren();
-    statusEl.textContent = "Searching…";
+    statusEl.textContent = t("searching");
 
     var controller = new AbortController();
     var giveUp = setTimeout(function () { controller.abort(); }, 90000);
-    var slow = setTimeout(function () {
-      statusEl.textContent = "The free server may be waking up. This can take up to a minute…";
-    }, 4000);
+    var slow = setTimeout(function () { statusEl.textContent = t("waking"); }, 4000);
 
     fetch("/ask", {
       method: "POST",
@@ -266,10 +402,8 @@
       signal: controller.signal
     })
       .then(function (response) {
-        if (response.status === 422) {
-          throw new Error("Please write a question between 3 and 500 characters.");
-        }
-        if (!response.ok) throw new Error("The server answered with an error (" + response.status + ").");
+        if (response.status === 422) throw new Error(t("len"));
+        if (!response.ok) throw new Error(t("serverError") + " (" + response.status + ").");
         return response.json();
       })
       .then(function (data) {
@@ -278,10 +412,8 @@
       })
       .catch(function (err) {
         statusEl.textContent = "";
-        var message = err.name === "AbortError"
-          ? "The server took too long to respond. Please try again in a moment."
-          : (err.message || "Something went wrong. Please try again.");
-        showMessage("error", "Could not get an answer", message);
+        var message = err.name === "AbortError" ? t("timeout") : (err.message || t("generic"));
+        showMessage("error", t("errorTitle"), message);
       })
       .finally(function () {
         clearTimeout(giveUp);
@@ -289,6 +421,8 @@
         button.disabled = false;
       });
   });
+
+  applyLanguage();
 })();
 </script>
 </body>
