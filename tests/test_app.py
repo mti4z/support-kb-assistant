@@ -187,3 +187,32 @@ def test_eval_questions_point_to_existing_articles():
         for item in json.loads(file.read_text(encoding="utf-8")):
             if item["expected"]:
                 assert item["expected"] in slugs, f"{file.name}: unknown article {item['expected']}"
+
+
+def test_answer_eval_parses_judge_reply_and_grades_with_fakes():
+    from eval.run_answer_eval import grade_item, parse_verdict, summarize
+
+    v = parse_verdict('Sure! {"grounded": true, "relevant": false, "refused": true, "reason": "x"}')
+    assert v["grounded"] and not v["relevant"] and v["refused"]
+
+    ok = grade_item(
+        {"q": "I forgot my password", "expected": "password-reset"},
+        answer_fn=lambda q, p: "Use the self-service reset.",
+        judge_fn=lambda prompt: '{"grounded": true, "relevant": true, "refused": false, "reason": "ok"}',
+    )
+    nothing = grade_item({"q": "zzzz qqqq", "expected": None}, answer_fn=None, judge_fn=None)
+    assert ok["calls"] == 2 and nothing["refused"] and nothing["calls"] == 0
+    s = summarize([ok, nothing])
+    assert s["grounded"] == 1.0 and s["correct_refusal"] == 1.0
+    assert ok["in_context"] and s["in_context"] == 1 and s["answered_when_in_context"] == 1.0
+
+
+def test_message_text_skips_thinking_blocks():
+    from types import SimpleNamespace as NS
+
+    from app.answer import message_text
+
+    msg = NS(content=[NS(type="thinking", thinking="hmm"), NS(type="text", text="Restart it.")])
+    assert message_text(msg) == "Restart it."
+    with pytest.raises(ValueError):
+        message_text(NS(content=[NS(type="thinking", thinking="hmm")]))

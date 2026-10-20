@@ -23,6 +23,14 @@ SYSTEM_PROMPT = (
 )
 
 
+def message_text(msg) -> str:
+    """Join the text blocks of a reply. The first block may be a thinking block."""
+    text = "".join(b.text for b in msg.content if getattr(b, "type", None) == "text")
+    if not text.strip():
+        raise ValueError("the reply had no text block")
+    return text
+
+
 def _extractive(passages: list[dict]) -> str:
     top = passages[0]
     return f"{top['heading']}: {top['content']}"
@@ -37,13 +45,13 @@ def _with_claude(question: str, passages: list[dict]) -> str:
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model=MODEL,
-        max_tokens=500,
+        max_tokens=1500,
         system=SYSTEM_PROMPT,
         messages=[
             {"role": "user", "content": f"Passages:\n{context}\n\nQuestion: {question}"}
         ],
     )
-    return msg.content[0].text
+    return message_text(msg)
 
 
 def build_answer(question: str, passages: list[dict]) -> tuple[str, str]:

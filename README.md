@@ -116,6 +116,31 @@ hit@1 / hit@3: the expected article is the first result / among the first three.
 - **Synonyms add some noise.** In `heldout`, "I left my laptop on the train" dropped from first to second place, because "laptop" also pulls in articles about slow computers.
 - **The sets are small.** One question is 6 to 7 points of hit@k, and I wrote both the synonyms and the questions, so treat the differences as an indication, not a proof.
 
+### Evaluating the answers written by Claude
+
+Retrieval is only half of it. `eval/run_answer_eval.py` retrieves passages, lets Claude answer, and then uses Claude as a judge to check that the answer is **grounded** in the passages, **relevant**, and that out-of-scope questions are **refused**. It needs `ANTHROPIC_API_KEY` and costs about one dollar for 62 questions (the `test` and `test_v2` sets).
+
+```bash
+python -m eval.run_answer_eval --dry-run          # counts API calls, no key needed
+python -m eval.run_answer_eval --verbose --save answers.json
+python -m eval.review_answers answers.json        # prints the cases worth a human look
+```
+
+| | Result |
+|---|---|
+| Answerable questions | 48 |
+| Answers fully grounded in the passages (judge) | 0.94 (3 of 48 flagged) |
+| The right article reached Claude | 45 of 48 |
+| Claude answered when the right article reached it | 0.80 |
+| Out-of-scope questions refused | 14 of 14 (2 by retrieval, 12 by Claude) |
+
+What I found when I read the cases by hand:
+
+- **Claude backs up retrieval where retrieval is weak.** Search alone refused only 2 of 14 out-of-scope questions, but Claude refused the other 12 ("Can you recommend a good monitor to buy?", "How do I delete my Facebook account?"). Nothing out of scope was answered.
+- **The 3 "not grounded" cases are small.** Two objections were to the closing "open a ticket if this does not help", one to a sentence about external disks, one to naming a chat status. None invents a procedure.
+- **The 9 "declined" cases are mostly partial refusals** ("the passages do not cover X", followed by the related steps). In several the cause is retrieval at section level: the right article arrived, but not the section with the answer (for example "Adding the account" for "How do I get my work email on my phone?"). Claude only sees the 3 best passages, so passing the whole article is the obvious next fix.
+- **Limits.** The same model answers and judges, there are only 62 questions, and "relevant" also counts a well explained refusal as relevant, so I do not use that number as a result.
+
 ### Things I tried that did not work
 
 I also tested hybrid search with `pgvector`, averaging pre-trained word vectors into embeddings and merging both rankings. It did not beat plain full-text search on questions it had not seen (hit@3 0.64 against 0.79 on `heldout`), so I did not keep it. That experiment is not part of this repository.
@@ -138,7 +163,7 @@ Render (web service) and Neon (PostgreSQL), both on free plans.
 pytest -q
 ```
 
-24 tests cover parsing, search, synonyms, the API, the question log, feedback and the admin report. They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
+25 tests cover parsing, search, synonyms, the API, the question log, feedback and the admin report. They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
 
 CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 
@@ -147,4 +172,4 @@ CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 - The knowledge base is small: 30 articles, and 14 to 32 answerable questions per evaluation set.
 - Refusing out-of-scope questions is weak (see above). A relevance check on the generated answer, or a classifier, could help.
 - No rate limiting: someone could fill the question log.
-- Next: add articles guided by the unanswered-questions report, grow the evaluation sets (ideally with questions written by someone else), evaluate the answers written by Claude (groundedness and correct refusals), and try a real sentence-embedding model for semantic search.
+- Next: give Claude the whole top article instead of the 3 best passages, add articles guided by the unanswered-questions report, grow the evaluation sets (ideally with questions written by someone else), and try a real sentence-embedding model for semantic search.
