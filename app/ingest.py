@@ -10,6 +10,26 @@ from pathlib import Path
 from app.db import connect, init_schema
 
 ARTICLES_DIR = Path(__file__).resolve().parent.parent / "data" / "articles"
+SYNONYMS_FILE = Path(__file__).resolve().parent.parent / "data" / "synonyms.txt"
+
+
+def normalize_term(term: str) -> str:
+    """Lowercase, and turn punctuation into spaces: "Wi-Fi" -> "wi fi"."""
+    return re.sub(r"[^a-z0-9]+", " ", term.lower()).strip()
+
+
+def parse_synonyms(path: Path) -> list[dict]:
+    rows = []
+    group_id = 0
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        group_id += 1
+        for term in dict.fromkeys(normalize_term(t) for t in line.split(",")):
+            if term:
+                rows.append({"group_id": group_id, "term": term})
+    return rows
 
 
 def parse_article(path: Path) -> list[dict]:
@@ -41,6 +61,12 @@ def ingest() -> int:
         chunks.extend(parse_article(path))
     with connect() as conn:
         conn.execute("TRUNCATE chunks RESTART IDENTITY")
+        conn.execute("TRUNCATE synonyms RESTART IDENTITY")
+        with conn.cursor() as cur:
+            cur.executemany(
+                "INSERT INTO synonyms (group_id, term) VALUES (%(group_id)s, %(term)s)",
+                parse_synonyms(SYNONYMS_FILE),
+            )
         with conn.cursor() as cur:
             cur.executemany(
                 "INSERT INTO chunks (slug, title, heading, content) "

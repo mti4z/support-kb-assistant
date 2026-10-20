@@ -1,0 +1,27 @@
+# Groups of words that people use for the same thing in IT support.
+# One group per line, separated by commas. If a question contains any word of a
+# group, the other words of that group are added to the search.
+# Multi-word terms are allowed. Case, hyphens and plurals do not matter.
+
+computer, pc, laptop, notebook, desktop, workstation
+slow, sluggish, laggy, lag, freeze, freezing, frozen, hang, unresponsive, performance
+password, passcode, passphrase, credentials, login, sign in
+locked, lockout, locked out, suspended
+wifi, wi-fi, wireless, wlan, internet
+disconnect, disconnecting, drop, dropping, cut out, cutting out, unstable
+vpn, remote access, remote connection, tunnel
+printer, printing, copier, mfp
+email, e-mail, mail, mailbox, inbox, outbox, outlook
+mfa, 2fa, two-step, two factor, multi-factor, authenticator, authentication
+phishing, scam, suspicious, fraud, fraudulent, spam
+blue screen, bsod, stop code, crash, crashed
+stolen, theft, lost, missing, misplaced
+phone, smartphone, mobile, cellphone
+software, application, app, program
+install, installation, installing
+folder, shared drive, network drive, directory, file share
+permission, access denied, no access, unauthorized
+video call, videoconference, video conference, meeting, teams, zoom, webex, skype
+microphone, mic, headset, audio, sound, speaker
+new hire, new employee, new joiner, onboarding, first day
+reboot, restart, power cycle

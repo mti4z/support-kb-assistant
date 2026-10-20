@@ -1,0 +1,20 @@
+[
+  {"q": "I can't remember my sign-in credentials", "expected": "password-reset"},
+  {"q": "My headset is connected but the other participants hear nothing", "expected": "video-call-audio-issues"},
+  {"q": "Internet at home keeps cutting out on my laptop", "expected": "wifi-troubleshooting"},
+  {"q": "Documents won't come out of the office printer", "expected": "printer-not-working"},
+  {"q": "My notebook is sluggish and freezes when I open several programs", "expected": "slow-computer"},
+  {"q": "Emails are stuck in my outbox and nothing arrives", "expected": "outlook-email-sync"},
+  {"q": "I got a new phone and my authentication codes disappeared", "expected": "mfa-setup"},
+  {"q": "I start next Monday, what happens with my equipment and accounts?", "expected": "new-employee-onboarding"},
+  {"q": "Can I install Slack on my work machine?", "expected": "software-install-requests"},
+  {"q": "The network folder I used to open now says access denied", "expected": "shared-drive-access"},
+  {"q": "A message from the bank asked me to confirm my password, who do I tell?", "expected": "phishing-reporting"},
+  {"q": "I left my laptop on the train", "expected": "lost-or-stolen-device"},
+  {"q": "Windows crashed with a stop code and rebooted", "expected": "blue-screen-errors"},
+  {"q": "I can't reach internal websites over remote access", "expected": "vpn-connection-issues"},
+  {"q": "What is the weather like tomorrow?", "expected": null},
+  {"q": "How many vacation days do I have left?", "expected": null},
+  {"q": "How do I book a meeting room?", "expected": null},
+  {"q": "How do I submit an expense report?", "expected": null}
+]

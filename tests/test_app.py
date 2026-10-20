@@ -115,3 +115,55 @@ def test_report_lists_frequent_unanswered_questions(monkeypatch):
     top = data["unanswered_questions"][0]
     assert top["question"] == "where is the cafeteria?" and top["times"] >= 3
     assert data["answer_rate"] is not None
+
+
+# ---- synonyms ----
+
+from app.ingest import SYNONYMS_FILE, normalize_term, parse_synonyms
+from app.search import expand_query
+
+
+def test_normalize_term_handles_case_and_hyphens():
+    assert normalize_term("Wi-Fi") == "wi fi"
+    assert normalize_term("  E-Mail ") == "e mail"
+
+
+def test_parse_synonyms_ignores_comments_and_groups_terms():
+    rows = parse_synonyms(SYNONYMS_FILE)
+    assert rows and all(r["term"] == r["term"].strip() for r in rows)
+    computer_group = {r["term"] for r in rows if r["term"] == "pc"}
+    assert computer_group == {"pc"}
+    group = next(r["group_id"] for r in rows if r["term"] == "pc")
+    assert {"computer", "laptop", "notebook"} <= {r["term"] for r in rows if r["group_id"] == group}
+    assert not any(r["term"].startswith("#") for r in rows)
+
+
+def test_expand_query_adds_synonyms_and_keeps_the_question():
+    with connect() as conn:
+        expanded = expand_query("My PC is really slow", conn)
+    assert expanded.startswith("My PC is really slow")
+    assert "computer" in expanded and "laptop" in expanded and "sluggish" in expanded
+
+
+def test_expand_query_matches_plurals_and_phrases():
+    with connect() as conn:
+        assert "copier" in expand_query("The printers are broken", conn)
+        assert "meeting" in expand_query("No sound in my video call", conn)
+
+
+def test_expand_query_leaves_unrelated_questions_alone():
+    with connect() as conn:
+        assert expand_query("What is the capital of France?", conn) == "What is the capital of France?"
+
+
+def test_synonyms_find_an_article_the_plain_words_miss():
+    plain = search("My notebook is sluggish", synonyms=False)
+    with_synonyms = search("My notebook is sluggish", synonyms=True)
+    assert with_synonyms and with_synonyms[0]["slug"] == "slow-computer"
+    assert not plain or plain[0]["slug"] != "slow-computer"
+
+
+def test_synonyms_can_be_turned_off(monkeypatch):
+    monkeypatch.setenv("USE_SYNONYMS", "0")
+    off = [r["slug"] for r in search("My notebook is sluggish")]
+    assert off == [r["slug"] for r in search("My notebook is sluggish", synonyms=False)]

@@ -34,6 +34,13 @@ CREATE TABLE IF NOT EXISTS query_log (
     helpful   BOOLEAN               -- NULL until the user answers "was this helpful?"
 );
 CREATE INDEX IF NOT EXISTS query_log_asked_at_idx ON query_log (asked_at DESC);
+
+-- Words that mean the same thing in IT support (loaded from data/synonyms.txt).
+CREATE TABLE IF NOT EXISTS synonyms (
+    id       SERIAL PRIMARY KEY,
+    group_id INT  NOT NULL,
+    term     TEXT NOT NULL   -- normalized: lowercase letters and digits, single spaces
+);
 """
 
 
