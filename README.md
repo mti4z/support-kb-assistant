@@ -67,17 +67,20 @@ Interactive docs at `/docs`.
 
 ## Evaluation
 
-Three question sets, written in different words than the articles. Each has answerable questions (with the expected article) and out-of-scope ones.
+Four question sets, written in different words than the articles. Each has answerable questions (with the expected article) and out-of-scope ones.
 
 | Set | Questions | Role |
 |---|---|---|
 | `dev` | 20 + 4 | Used to choose the score threshold |
 | `heldout` | 14 + 4 | Written separately, but I had seen its failures when I wrote the synonyms |
 | `test` | 16 + 6 | Written **before** the synonyms and run only once, at the end |
+| `test_v2` | 32 + 8 | Written **before** the 16 articles that doubled the knowledge base (14 to 30), run once after freezing everything |
 
 ```bash
 python -m eval.run_eval --verbose
 ```
+
+Knowledge base with 14 articles:
 
 | Set | Synonyms | hit@1 | hit@3 | MRR | Abstain |
 |---|---|---|---|---|---|
@@ -85,8 +88,21 @@ python -m eval.run_eval --verbose
 | dev | on | 0.95 | 1.00 | 0.97 | 0.75 |
 | heldout | off | 0.36 | 0.79 | 0.52 | 0.25 |
 | heldout | on | 0.64 | 0.93 | 0.77 | 0.25 |
-| **test** | off | 0.69 | 0.94 | 0.80 | 0.33 |
-| **test** | on | **0.88** | **1.00** | **0.94** | 0.33 |
+| test | off | 0.69 | 0.94 | 0.80 | 0.33 |
+| test | on | 0.88 | 1.00 | 0.94 | 0.33 |
+
+Same questions after growing the knowledge base to 30 articles, plus the new blind set:
+
+| Set | Synonyms | hit@1 | hit@3 | MRR | Abstain |
+|---|---|---|---|---|---|
+| dev | off | 0.85 | 0.95 | 0.88 | 0.75 |
+| dev | on | 0.90 | 1.00 | 0.94 | 0.75 |
+| heldout | off | 0.36 | 0.43 | 0.46 | 0.25 |
+| heldout | on | 0.64 | 0.86 | 0.72 | 0.25 |
+| test | off | 0.50 | 0.81 | 0.65 | 0.17 |
+| test | on | 0.88 | 1.00 | 0.94 | 0.17 |
+| **test_v2** | off | 0.84 | 0.94 | 0.89 | 0.12 |
+| **test_v2** | on | **0.84** | **1.00** | **0.92** | 0.12 |
 
 hit@1 / hit@3: the expected article is the first result / among the first three. MRR: mean reciprocal rank. Abstain: share of out-of-scope questions correctly answered with "no match".
 
@@ -94,7 +110,9 @@ hit@1 / hit@3: the expected article is the first result / among the first three.
 
 - **Synonyms help.** On the clean `test` set, the right article is the first result 88% of the time, against 69% without synonyms.
 - **My first numbers were optimistic.** Without synonyms, hit@1 goes from 0.85 on `dev` to 0.36 on `heldout`: the first set was too close to the wording of the articles.
-- **Refusing off-topic questions did not improve.** "How do I reset my Netflix password?" still matches the password article, and a score threshold cannot tell the difference.
+- **A bigger knowledge base makes plain search worse.** With 30 articles instead of 14, hit@3 without synonyms on `heldout` drops from 0.79 to 0.43 and hit@1 on `test` from 0.69 to 0.50: more articles share words, so unrelated ones outrank the right one. With synonyms the `test` numbers do not change (0.88 / 1.00).
+- **On new topics the result holds.** On `test_v2`, written before the new articles, the right article is among the first three 100% of the time with synonyms (94% without). hit@1 is 0.84 either way, so on these questions synonyms mostly help the right article reach the top three.
+- **Refusing off-topic questions got worse.** "How do I reset my Netflix password?" still matches the password article, and a score threshold cannot tell the difference. With 30 articles more out-of-scope questions share words with some article ("Can you recommend a good monitor to buy?" matches the monitor article), and abstention fell to 12% on `test_v2`. I added synonym groups for the new topics after seeing how the old sets behaved, but I wrote the `test_v2` questions knowing the topic list, so treat its numbers as slightly optimistic.
 - **Synonyms add some noise.** In `heldout`, "I left my laptop on the train" dropped from first to second place, because "laptop" also pulls in articles about slow computers.
 - **The sets are small.** One question is 6 to 7 points of hit@k, and I wrote both the synonyms and the questions, so treat the differences as an indication, not a proof.
 
@@ -120,13 +138,13 @@ Render (web service) and Neon (PostgreSQL), both on free plans.
 pytest -q
 ```
 
-22 tests cover parsing, search, synonyms, the API, the question log, feedback and the admin report. They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
+24 tests cover parsing, search, synonyms, the API, the question log, feedback and the admin report. They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
 
 CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 
 ## Limitations and next steps
 
-- The knowledge base is small: 14 articles, and about 16 answerable questions per evaluation set.
+- The knowledge base is small: 30 articles, and 14 to 32 answerable questions per evaluation set.
 - Refusing out-of-scope questions is weak (see above). A relevance check on the generated answer, or a classifier, could help.
 - No rate limiting: someone could fill the question log.
 - Next: add articles guided by the unanswered-questions report, grow the evaluation sets (ideally with questions written by someone else), evaluate the answers written by Claude (groundedness and correct refusals), and try a real sentence-embedding model for semantic search.

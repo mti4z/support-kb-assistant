@@ -25,3 +25,16 @@ video call, videoconference, video conference, meeting, teams, zoom, webex, skyp
 microphone, mic, headset, audio, sound, speaker
 new hire, new employee, new joiner, onboarding, first day
 reboot, restart, power cycle
+monitor, display, second screen, external screen, second display
+usb stick, flash drive, thumb drive, pen drive, external drive, external hard drive
+browser, chrome, edge, firefox, web page, website
+attachment, large file, big file
+remote desktop, rdp, work from home computer
+leaving the company, offboarding, resign, last day, return equipment
+calendar, appointment, meeting invitation
+notification, popup, banner
+share screen, screen sharing, present, presenting
+antivirus, malware, virus, threat, infection
+scan, scanner, scanning
+bluetooth, wireless headphones, headphones
+deleted, recover, restore, previous version

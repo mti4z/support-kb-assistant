@@ -167,3 +167,23 @@ def test_synonyms_can_be_turned_off(monkeypatch):
     monkeypatch.setenv("USE_SYNONYMS", "0")
     off = [r["slug"] for r in search("My notebook is sluggish")]
     assert off == [r["slug"] for r in search("My notebook is sluggish", synonyms=False)]
+
+
+def test_every_article_has_a_title_and_sections():
+    paths = sorted(ARTICLES_DIR.glob("*.md"))
+    assert len(paths) >= 30
+    for path in paths:
+        chunks = parse_article(path)
+        assert chunks, f"{path.name} has no sections"
+        assert all(c["title"] and c["heading"] and c["content"] for c in chunks), path.name
+
+
+def test_eval_questions_point_to_existing_articles():
+    import json
+    from pathlib import Path
+
+    slugs = {p.stem for p in ARTICLES_DIR.glob("*.md")}
+    for file in sorted(Path("eval").glob("questions*.json")):
+        for item in json.loads(file.read_text(encoding="utf-8")):
+            if item["expected"]:
+                assert item["expected"] in slugs, f"{file.name}: unknown article {item['expected']}"

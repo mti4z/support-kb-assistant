@@ -4,6 +4,7 @@ Three question sets, written in different words than the articles:
   dev      eval/questions.json          used to choose the score threshold
   heldout  eval/questions_heldout.json  written separately, but seen while writing the synonyms
   test     eval/questions_test.json     written before the synonyms and run only once at the end
+  test_v2  eval/questions_test_v2.json  written before the 16 new articles, run once after freezing
 
 Each set has answerable questions (with the expected article) and out-of-scope ones.
 
@@ -28,6 +29,7 @@ SETS = {
     "dev": HERE / "questions.json",
     "heldout": HERE / "questions_heldout.json",
     "test": HERE / "questions_test.json",
+    "test_v2": HERE / "questions_test_v2.json",
 }
 
 
