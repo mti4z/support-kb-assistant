@@ -36,12 +36,44 @@ def _extractive(passages: list[dict]) -> str:
     return f"{top['heading']}: {top['content']}"
 
 
+def _format(items: list[dict]) -> str:
+    return "\n\n".join(f"[{p['title']} / {p['heading']}]\n{p['content']}" for p in items)
+
+
+def build_context(passages: list[dict], max_articles: int = 2) -> str:
+    """Text given to Claude.
+
+    Default: every section of the best `max_articles` articles, because the best
+    passage can come from the wrong section of the right article. Set
+    ANSWER_CONTEXT=passages to use only the 3 best passages instead.
+    """
+    if os.environ.get("ANSWER_CONTEXT", "article") == "passages":
+        return _format(passages[:3])
+    slugs: list[str] = []
+    for p in passages:
+        if p["slug"] not in slugs:
+            slugs.append(p["slug"])
+    try:
+        from app.db import connect
+
+        items = []
+        with connect() as conn:
+            for slug in slugs[:max_articles]:
+                items += conn.execute(
+                    "SELECT title, heading, content FROM chunks WHERE slug = %s ORDER BY id",
+                    (slug,),
+                ).fetchall()
+        if items:
+            return _format(items)
+    except Exception:
+        pass
+    return _format(passages[:3])
+
+
 def _with_claude(question: str, passages: list[dict]) -> str:
     import anthropic
 
-    context = "\n\n".join(
-        f"[{p['title']} / {p['heading']}]\n{p['content']}" for p in passages[:3]
-    )
+    context = build_context(passages)
     client = anthropic.Anthropic()
     msg = client.messages.create(
         model=MODEL,

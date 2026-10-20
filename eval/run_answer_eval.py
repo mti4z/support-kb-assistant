@@ -23,7 +23,7 @@ import re
 import sys
 from pathlib import Path
 
-from app.answer import MODEL, NO_ANSWER, _with_claude, message_text
+from app.answer import MODEL, NO_ANSWER, _with_claude, build_context, message_text
 from app.search import search
 from eval.run_eval import SETS
 
@@ -80,7 +80,7 @@ def grade_item(item: dict, answer_fn=_with_claude, judge_fn=_judge_call, min_sco
                    reason="retrieval found nothing", calls=0)
         return row
     answer = answer_fn(item["q"], passages)
-    context = "\n\n".join(f"[{p['title']} / {p['heading']}]\n{p['content']}" for p in passages[:3])
+    context = build_context(passages)  # the judge sees exactly what Claude saw
     verdict = parse_verdict(judge_fn(JUDGE_PROMPT.format(
         passages=context, question=item["q"], answer=answer)))
     row.update(answer=answer, calls=2, **verdict)

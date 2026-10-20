@@ -13,6 +13,8 @@ groups = {
         [c for c in cases if not c["grounded"]],
     "DECLINED although the right article reached Claude":
         [c for c in cases if c["expected"] and c["in_context"] and c["refused"]],
+    "ANSWERED although the expected article was not among the 3 best passages (check they are right)":
+        [c for c in cases if c["expected"] and not c["in_context"] and not c["refused"]],
     "ANSWERED an out-of-scope question (should be none)":
         [c for c in cases if not c["expected"] and not c["refused"]],
 }

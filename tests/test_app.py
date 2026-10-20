@@ -216,3 +216,14 @@ def test_message_text_skips_thinking_blocks():
     assert message_text(msg) == "Restart it."
     with pytest.raises(ValueError):
         message_text(NS(content=[NS(type="thinking", thinking="hmm")]))
+
+
+def test_build_context_uses_whole_top_articles(monkeypatch):
+    from app.answer import build_context
+
+    passages = search("My Bluetooth headphones won't connect to my laptop")
+    monkeypatch.delenv("ANSWER_CONTEXT", raising=False)
+    full = build_context(passages)
+    assert "Pairing a device" in full  # the section that only the full article brings
+    monkeypatch.setenv("ANSWER_CONTEXT", "passages")
+    assert full.count("[") >= build_context(passages).count("[")

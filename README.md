@@ -126,19 +126,23 @@ python -m eval.run_answer_eval --verbose --save answers.json
 python -m eval.review_answers answers.json        # prints the cases worth a human look
 ```
 
-| | Result |
-|---|---|
-| Answerable questions | 48 |
-| Answers fully grounded in the passages (judge) | 0.94 (3 of 48 flagged) |
-| The right article reached Claude | 45 of 48 |
-| Claude answered when the right article reached it | 0.80 |
-| Out-of-scope questions refused | 14 of 14 (2 by retrieval, 12 by Claude) |
+Claude first received the 3 best passages; then I changed it to receive every section of the 2 best articles (`ANSWER_CONTEXT=passages` brings back the old behavior). Same 62 questions, same judge:
+
+| | 3 best passages | Whole top 2 articles |
+|---|---|---|
+| Answerable questions | 48 | 48 |
+| Answers fully grounded in the passages (judge) | 0.94 | 0.94 |
+| The right article among the 3 best passages | 45 of 48 | 45 of 48 |
+| Claude answered when it was | 0.80 | **0.91** |
+| Out-of-scope questions refused | 14 of 14 | 14 of 14 |
+
+I made that change after reading the failures of the first run, so the improvement is measured on questions I had already seen. It is an indication, not a clean test.
 
 What I found when I read the cases by hand:
 
 - **Claude backs up retrieval where retrieval is weak.** Search alone refused only 2 of 14 out-of-scope questions, but Claude refused the other 12 ("Can you recommend a good monitor to buy?", "How do I delete my Facebook account?"). Nothing out of scope was answered.
 - **The 3 "not grounded" cases are small.** Two objections were to the closing "open a ticket if this does not help", one to a sentence about external disks, one to naming a chat status. None invents a procedure.
-- **The 9 "declined" cases are mostly partial refusals** ("the passages do not cover X", followed by the related steps). In several the cause is retrieval at section level: the right article arrived, but not the section with the answer (for example "Adding the account" for "How do I get my work email on my phone?"). Claude only sees the 3 best passages, so passing the whole article is the obvious next fix.
+- **The 9 "declined" cases are mostly partial refusals** ("the passages do not cover X", followed by the related steps). In several the cause is retrieval at section level: the right article arrived, but not the section with the answer (for example "Adding the account" for "How do I get my work email on my phone?"). Claude only saw the 3 best passages, so I changed it to receive the whole article, which raised the share of answered questions from 0.80 to 0.91 without hurting refusals. In 2 of the 3 questions where the right article was not among the 3 best passages, the whole article let Claude answer correctly.
 - **Limits.** The same model answers and judges, there are only 62 questions, and "relevant" also counts a well explained refusal as relevant, so I do not use that number as a result.
 
 ### Things I tried that did not work
@@ -172,4 +176,4 @@ CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 - The knowledge base is small: 30 articles, and 14 to 32 answerable questions per evaluation set.
 - Refusing out-of-scope questions is weak (see above). A relevance check on the generated answer, or a classifier, could help.
 - No rate limiting: someone could fill the question log.
-- Next: give Claude the whole top article instead of the 3 best passages, add articles guided by the unanswered-questions report, grow the evaluation sets (ideally with questions written by someone else), and try a real sentence-embedding model for semantic search.
+- Next: add articles guided by the unanswered-questions report, grow the evaluation sets (ideally with questions written by someone else), and try a real sentence-embedding model for semantic search.
