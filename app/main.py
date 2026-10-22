@@ -4,7 +4,7 @@ import re
 import secrets
 from pathlib import Path
 
-from fastapi import FastAPI, Header, HTTPException, Query, UploadFile
+from fastapi import FastAPI, Header, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 
@@ -13,6 +13,7 @@ from app.answer import build_answer
 from app.documents import (
     MAX_BYTES, DocumentError, delete_document, list_documents, save_document,
 )
+from app.ratelimit import check_questions, check_uploads
 from app.search import search
 from app.tenants import get_tenant
 
@@ -85,11 +86,13 @@ def required_tenant(key: str | None) -> dict:
 
 @app.get("/search")
 def search_endpoint(
+    request: Request,
     q: str = Query(min_length=2),
     limit: int = Query(5, ge=1, le=20),
     x_api_key: str | None = Header(default=None),
 ):
     tenant_id = optional_tenant_id(x_api_key)
+    check_questions(request, tenant_id)
     return {
         "results": [
             {**_source(p), "content": p["content"]} for p in search(q, limit, tenant_id=tenant_id)
@@ -98,10 +101,11 @@ def search_endpoint(
 
 
 @app.post("/ask")
-def ask(req: AskRequest, x_api_key: str | None = Header(default=None)):
+def ask(req: AskRequest, request: Request, x_api_key: str | None = Header(default=None)):
     """Without X-API-Key it uses the public demo articles; with the key of a
     client it uses only that client's documents."""
     tenant_id = optional_tenant_id(x_api_key)
+    check_questions(request, tenant_id)
     passages = search(req.question, limit=3, tenant_id=tenant_id)
     answer, mode = build_answer(req.question, passages)
     return {
@@ -139,6 +143,7 @@ def admin_report(
 async def upload_documents(files: list[UploadFile], x_api_key: str | None = Header(default=None)):
     """Upload one or more .md, .txt, .pdf or .docx files. Same name = replace."""
     tenant = required_tenant(x_api_key)
+    check_uploads(tenant["id"])
     results = []
     for f in files:
         data = await f.read(MAX_BYTES + 1)

@@ -218,13 +218,26 @@ Deploys are safe: `python -m app.ingest` reloads only the public articles and ne
 
 Not built yet: a web panel for clients, an embeddable chat widget, rate limiting, OCR, and the evaluation of answers on a client's own documents (the retrieval numbers above are for the demo articles only).
 
+## Usage limits
+
+Each question to the public demo can cost a call to Claude, so `/ask` and `/search` are limited (HTTP 429 with a `Retry-After` header):
+
+| Who | Per minute | Per day | Environment variables |
+|---|---|---|---|
+| Anonymous visitor (by IP) | 10 | 100 | `ANON_PER_MINUTE`, `ANON_PER_DAY` |
+| The whole public demo | | 1000 | `ANON_GLOBAL_PER_DAY` |
+| A client with an API key | 30 | 1000 | `TENANT_PER_MINUTE`, `TENANT_PER_DAY` |
+| Uploads per client | | 60 per hour | `UPLOADS_PER_HOUR` |
+
+Set a variable to `0` to remove that limit. The counters live in memory: they reset on every deploy or restart and are not shared between servers, which is enough for one small server. The visitor's IP is read from `X-Forwarded-For`; since a client can fake that header, the global daily cap is what really protects the bill.
+
 ## Tests and CI
 
 ```bash
 pytest -q
 ```
 
-50 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
+56 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
 
 CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 
