@@ -104,3 +104,8 @@ def test_widget_questions_appear_in_the_clients_report(tenant):
     client.post("/widget/ask", json={"token": token, "question": "something never documented anywhere"})
     rep = client.get("/tenant/report", headers={"X-API-Key": key}).json()
     assert "something never documented anywhere" in [u["question"] for u in rep["unanswered_questions"]]
+
+
+def test_home_page_links_to_the_client_panel():
+    html = client.get("/").text
+    assert 'href="/panel"' in html and 'clients: "Client login"' in html and "Acceso clientes" in html
