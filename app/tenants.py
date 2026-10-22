@@ -17,6 +17,10 @@ def hash_key(key: str) -> str:
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
+def new_widget_token() -> str:
+    return "wk_" + secrets.token_urlsafe(16)
+
+
 def create_tenant(name: str) -> tuple[dict, str]:
     """Return (tenant, api_key). The key cannot be recovered later."""
     name = name.strip()
@@ -26,9 +30,9 @@ def create_tenant(name: str) -> tuple[dict, str]:
     key = "kb_" + secrets.token_urlsafe(24)
     with connect() as conn:
         row = conn.execute(
-            "INSERT INTO tenants (name, api_key_hash) VALUES (%s, %s) "
+            "INSERT INTO tenants (name, api_key_hash, widget_token) VALUES (%s, %s, %s) "
             "RETURNING id, name, created_at",
-            (name, hash_key(key)),
+            (name, hash_key(key), new_widget_token()),
         ).fetchone()
     return row, key
 
@@ -40,6 +44,34 @@ def get_tenant(key: str | None) -> dict | None:
         return conn.execute(
             "SELECT id, name FROM tenants WHERE api_key_hash = %s", (hash_key(key),)
         ).fetchone()
+
+
+def get_tenant_by_widget_token(token: str | None) -> dict | None:
+    """The widget key is public (it sits in the client's web page); it only allows asking."""
+    if not token:
+        return None
+    with connect() as conn:
+        return conn.execute(
+            "SELECT id, name, allowed_origins FROM tenants WHERE widget_token = %s", (token,)
+        ).fetchone()
+
+
+def get_widget(tenant_id: int) -> dict:
+    """Token and allowed origins of a client (creates the token for older clients)."""
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT widget_token, allowed_origins FROM tenants WHERE id = %s", (tenant_id,)
+        ).fetchone()
+        if not row["widget_token"]:
+            token = new_widget_token()
+            conn.execute("UPDATE tenants SET widget_token = %s WHERE id = %s", (token, tenant_id))
+            row = {**row, "widget_token": token}
+    return {"token": row["widget_token"], "allowed_origins": list(row["allowed_origins"])}
+
+
+def set_allowed_origins(tenant_id: int, origins: list[str]) -> None:
+    with connect() as conn:
+        conn.execute("UPDATE tenants SET allowed_origins = %s WHERE id = %s", (origins, tenant_id))
 
 
 def list_tenants() -> list[dict]:
@@ -64,7 +96,8 @@ def main(argv: list[str]) -> int:
     if len(argv) >= 3 and argv[1] == "create":
         tenant, key = create_tenant(" ".join(argv[2:]))
         print(f"Client created: {tenant['name']} (id {tenant['id']})")
-        print(f"API key (shown only once, save it now): {key}")
+        print(f"API key (secret, shown only once, save it now): {key}")
+        print(f"Widget key (public, can only ask questions): {get_widget(tenant['id'])['token']}")
         return 0
     if len(argv) == 2 and argv[1] == "list":
         for t in list_tenants():

@@ -216,7 +216,28 @@ How documents are processed: text is extracted, then split by heading (markdown 
 
 Deploys are safe: `python -m app.ingest` reloads only the public articles and never touches client documents.
 
-Not built yet: a web panel for clients, an embeddable chat widget, rate limiting, OCR, and the evaluation of answers on a client's own documents (the retrieval numbers above are for the demo articles only).
+Not built yet: OCR for scanned PDFs, per-client branding beyond title and colour, and the evaluation of answers on a client's own documents (the retrieval numbers above are for the demo articles only).
+
+## Client panel and chat widget
+
+**Panel** (`/panel`): the client signs in with their secret key and can upload, list and delete documents, try the assistant, see the questions it could not answer, and copy the widget code. English and Spanish. The page itself contains no data; everything goes through the API with the key (kept only in the browser tab's session storage).
+
+**Widget** (`/widget.js`): a chat bubble the client pastes into their own website:
+
+```html
+<script src="https://YOUR-APP/widget.js" data-token="wk_..." async></script>
+```
+
+Optional attributes: `data-lang="es|en"` (default: the visitor's browser language), `data-title="..."`, `data-color="#2563eb"`.
+
+Two keys per client, on purpose:
+
+| Key | Starts with | Where it lives | What it can do |
+|---|---|---|---|
+| API key | `kb_` | secret, only the client | upload and delete documents, read the report, ask |
+| Widget key | `wk_` | public, inside the client's web page | only ask questions (`POST /widget/ask`) |
+
+In the panel the client can also list the sites allowed to use the widget (for example `https://www.client.com`); requests from any other site get 403. If the list is empty, the widget works anywhere. A visitor limit and the client's overall limit apply (see Usage limits). Set `PUBLIC_URL` (for example `https://support-kb-assistant.onrender.com`) so the snippet always shows the right address.
 
 ## Usage limits
 
@@ -228,6 +249,7 @@ Each question to the public demo can cost a call to Claude, so `/ask` and `/sear
 | The whole public demo | | 1000 | `ANON_GLOBAL_PER_DAY` |
 | A client with an API key | 30 | 1000 | `TENANT_PER_MINUTE`, `TENANT_PER_DAY` |
 | Uploads per client | | 60 per hour | `UPLOADS_PER_HOUR` |
+| One visitor of a client's widget | 8 | | `WIDGET_VISITOR_PER_MINUTE` |
 
 Set a variable to `0` to remove that limit. The counters live in memory: they reset on every deploy or restart and are not shared between servers, which is enough for one small server. The visitor's IP is read from `X-Forwarded-For`; since a client can fake that header, the global daily cap is what really protects the bill.
 
@@ -237,7 +259,7 @@ Set a variable to `0` to remove that limit. The counters live in memory: they re
 pytest -q
 ```
 
-56 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
+65 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
 
 CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 

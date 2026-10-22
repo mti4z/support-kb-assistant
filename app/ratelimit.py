@@ -95,3 +95,12 @@ def check_uploads(tenant_id: int) -> None:
     wait = window.hit(f"upload:{tenant_id}", _int("UPLOADS_PER_HOUR", 60), 3600)
     if wait:
         _refuse(wait, "uploads")
+
+
+def check_widget(request: Request, tenant_id: int) -> None:
+    """The widget is open to anyone who visits the client's site: limit the client
+    as a whole and each visitor, so one visitor cannot use up the client's allowance."""
+    check_questions(request, tenant_id)
+    wait = window.hit(f"widget-ip:{tenant_id}:{client_ip(request)}:60", _int("WIDGET_VISITOR_PER_MINUTE", 8), 60)
+    if wait:
+        _refuse(wait, "requests")

@@ -73,3 +73,7 @@ def init_schema() -> None:
         conn.execute("ALTER TABLE query_log ADD COLUMN IF NOT EXISTS tenant_id INT")
         conn.execute("CREATE INDEX IF NOT EXISTS chunks_tenant_slug_idx ON chunks (tenant_id, slug)")
         conn.execute("CREATE INDEX IF NOT EXISTS query_log_tenant_idx ON query_log (tenant_id)")
+        # Public widget key (can only ask questions) and the sites allowed to embed it.
+        conn.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS widget_token TEXT")
+        conn.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS allowed_origins TEXT[] NOT NULL DEFAULT '{}'")
+        conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS tenants_widget_token_idx ON tenants (widget_token)")

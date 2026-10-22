@@ -5,7 +5,8 @@ import secrets
 from pathlib import Path
 
 from fastapi import FastAPI, Header, HTTPException, Query, Request, UploadFile
-from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel, Field
 
 from app.analytics import log_query, report, save_feedback
@@ -15,9 +16,15 @@ from app.documents import (
 )
 from app.ratelimit import check_questions, check_uploads
 from app.search import search
-from app.tenants import get_tenant
+from app.ratelimit import check_widget
+from app.tenants import (
+    get_tenant, get_tenant_by_widget_token, get_widget, set_allowed_origins,
+)
 
-app = FastAPI(title="Support KB Assistant", version="0.3.0")
+app = FastAPI(title="Support KB Assistant", version="0.4.0")
+# The widget runs on the client's website, so browsers need CORS. No cookies are
+# used: access is always by an explicit key in the header or body.
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["GET", "POST", "PUT", "DELETE"], allow_headers=["*"])
 
 
 class AskRequest(BaseModel):
@@ -174,3 +181,81 @@ def tenant_report(days: int = Query(30, ge=1, le=365), x_api_key: str | None = H
     """Unanswered questions and usage of this client only."""
     tenant = required_tenant(x_api_key)
     return report(days, tenant["id"])
+
+
+# ---- Panel and widget -----------------------------------------------------
+
+STATIC = Path(__file__).parent / "static"
+ORIGIN_RE = re.compile(r"^https?://[A-Za-z0-9.-]+(:\d{1,5})?$")
+
+
+@app.get("/panel", include_in_schema=False)
+def panel():
+    """The client panel. The page itself holds no data: it asks the API with the client's key."""
+    return FileResponse(STATIC / "panel.html", media_type="text/html")
+
+
+@app.get("/widget.js", include_in_schema=False)
+def widget_js():
+    return FileResponse(
+        STATIC / "widget.js",
+        media_type="application/javascript; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=300"},
+    )
+
+
+def public_url(request: Request) -> str:
+    configured = os.environ.get("PUBLIC_URL", "").strip().rstrip("/")
+    if configured:
+        return configured
+    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+    return f"{proto}://{request.headers.get('host', request.url.netloc)}"
+
+
+class WidgetAsk(BaseModel):
+    token: str = Field(min_length=3, max_length=100)
+    question: str = Field(min_length=3, max_length=500)
+
+
+class OriginsUpdate(BaseModel):
+    allowed_origins: list[str] = Field(max_length=20)
+
+
+@app.post("/widget/ask")
+def widget_ask(req: WidgetAsk, request: Request):
+    """Question from the widget on a client's site. The widget key can only ask."""
+    tenant = get_tenant_by_widget_token(req.token)
+    if not tenant:
+        raise HTTPException(status_code=401, detail="Invalid widget token")
+    origin = request.headers.get("origin")
+    allowed = list(tenant["allowed_origins"])
+    if allowed and origin not in allowed:
+        raise HTTPException(status_code=403, detail="This site is not allowed to use the widget")
+    check_widget(request, tenant["id"])
+    passages = search(req.question, limit=3, tenant_id=tenant["id"])
+    answer, mode = build_answer(req.question, passages)
+    return {
+        "answer": answer,
+        "mode": mode,
+        "sources": [{"slug": p["slug"], "title": p["title"], "heading": p["heading"]} for p in passages],
+        "query_id": log_query(req.question, mode, passages, tenant["id"]),
+    }
+
+
+@app.get("/tenant/widget")
+def tenant_widget(request: Request, x_api_key: str | None = Header(default=None)):
+    tenant = required_tenant(x_api_key)
+    w = get_widget(tenant["id"])
+    snippet = f'<script src="{public_url(request)}/widget.js" data-token="{w["token"]}" async></script>'
+    return {"token": w["token"], "allowed_origins": w["allowed_origins"], "snippet": snippet}
+
+
+@app.put("/tenant/widget")
+def update_widget(body: OriginsUpdate, x_api_key: str | None = Header(default=None)):
+    tenant = required_tenant(x_api_key)
+    origins = [o.strip().rstrip("/").lower() for o in body.allowed_origins if o.strip()]
+    for o in origins:
+        if not ORIGIN_RE.match(o):
+            raise HTTPException(status_code=422, detail=f"Not a valid site address: {o} (use https://www.example.com)")
+    set_allowed_origins(tenant["id"], list(dict.fromkeys(origins)))
+    return {"allowed_origins": get_widget(tenant["id"])["allowed_origins"]}

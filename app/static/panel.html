@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Panel · Support KB Assistant</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--ink:#1a1a1a;--mute:#5b6270;--line:#dfe2e7;--brand:#2563eb;--bad:#b42318}
+  @media (prefers-color-scheme:dark){:root{--bg:#14161a;--card:#1d2026;--ink:#eceef2;--mute:#a1a8b4;--line:#2d323b;--brand:#6ea0ff;--bad:#ff8a80}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  main{max-width:820px;margin:0 auto;padding:20px 16px 60px}
+  h1{font-size:1.4rem;margin:.2em 0 0}
+  h2{font-size:1.1rem;margin:0 0 .6em}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  input[type=text],input[type=password],textarea{flex:1;min-width:200px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit}
+  textarea{width:100%;min-height:70px}
+  button{padding:9px 14px;border-radius:8px;border:1px solid var(--brand);background:var(--brand);color:#fff;font:inherit;cursor:pointer}
+  button.ghost{background:none;color:var(--brand)}
+  button.del{background:none;color:var(--bad);border-color:var(--line);padding:4px 10px}
+  button:disabled{opacity:.6}
+  table{width:100%;border-collapse:collapse;font-size:.95rem}
+  td,th{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+  .mute{color:var(--mute);font-size:.9rem}
+  .err{color:var(--bad)}
+  pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px;overflow:auto;font-size:.85rem;white-space:pre-wrap;word-break:break-all}
+  .answer{white-space:pre-wrap;margin-top:10px}
+  .hide{display:none}
+  .lang{float:right}
+</style>
+</head>
+<body>
+<main>
+  <div class="lang"><button class="ghost" id="lang-es">ES</button> <button class="ghost" id="lang-en">EN</button></div>
+  <h1 data-i="title"></h1>
+  <p class="mute" data-i="intro"></p>
+
+  <section class="card" id="login">
+    <h2 data-i="loginH"></h2>
+    <div class="row">
+      <input type="password" id="key" autocomplete="off" data-ph="keyPh">
+      <button id="enter" data-i="enter"></button>
+    </div>
+    <p class="err" id="loginErr"></p>
+  </section>
+
+  <div id="app" class="hide">
+    <p class="mute"><span id="who"></span> <button class="ghost" id="logout" data-i="logout"></button></p>
+
+    <section class="card">
+      <h2 data-i="docsH"></h2>
+      <div class="row">
+        <input type="file" id="files" multiple accept=".pdf,.docx,.md,.txt">
+        <button id="upload" data-i="upload"></button>
+      </div>
+      <p class="mute" data-i="docsHelp"></p>
+      <p id="uploadMsg"></p>
+      <table id="docs"></table>
+    </section>
+
+    <section class="card">
+      <h2 data-i="testH"></h2>
+      <div class="row">
+        <input type="text" id="q" maxlength="500" data-ph="qPh">
+        <button id="ask" data-i="ask"></button>
+      </div>
+      <div class="answer" id="answer"></div>
+      <div class="mute" id="sources"></div>
+    </section>
+
+    <section class="card">
+      <h2 data-i="repH"></h2>
+      <p class="mute" data-i="repHelp"></p>
+      <button class="ghost" id="rep" data-i="repBtn"></button>
+      <div id="report"></div>
+    </section>
+
+    <section class="card">
+      <h2 data-i="wH"></h2>
+      <p class="mute" data-i="wHelp"></p>
+      <pre id="snippet"></pre>
+      <p data-i="origins"></p>
+      <textarea id="origins" data-ph="originsPh"></textarea>
+      <div class="row"><button id="saveOrigins" data-i="saveOrigins"></button> <span id="originsMsg"></span></div>
+    </section>
+  </div>
+</main>
+<script>
+(function(){
+  var I = {
+    es: {title:"Panel de documentos", intro:"Subí la documentación de tu equipo y probá el asistente. Cada cliente ve solo lo suyo.",
+      loginH:"Entrar", keyPh:"Tu clave de acceso (empieza con kb_)", enter:"Entrar", logout:"Salir",
+      docsH:"Tus documentos", upload:"Subir", docsHelp:"Acepta PDF con texto, Word (.docx), .md y .txt. Hasta 5 MB por archivo y 50 documentos. Si subís un archivo con el mismo nombre, reemplaza al anterior.",
+      testH:"Probar el asistente", qPh:"Hacé una pregunta de tu documentación", ask:"Preguntar",
+      repH:"Preguntas sin respuesta", repHelp:"Las preguntas que el asistente no pudo responder: cada una es un documento que falta.", repBtn:"Ver reporte",
+      wH:"Widget para tu sitio web", wHelp:"Pegá este código antes de </body> en tu sitio. La clave del widget es pública y solo permite hacer preguntas.",
+      origins:"Sitios autorizados (uno por línea, por ejemplo https://www.tuempresa.com). Si lo dejás vacío, funciona en cualquier sitio.", originsPh:"https://www.tuempresa.com", saveOrigins:"Guardar",
+      noDocs:"Todavía no subiste documentos.", sections:"secciones", del:"Borrar", confirmDel:"¿Borrar este documento?",
+      badKey:"Clave inválida.", pick:"Elegí al menos un archivo.", uploading:"Subiendo…", ok:"listo", saved:"Guardado.", none:"Sin preguntas sin responder en los últimos 30 días.",
+      times:"veces", stats:"Preguntas", answered:"con respuesta", helpful:"útiles", asking:"Buscando…", sourcesL:"Fuentes", connErr:"No se pudo conectar. Probá de nuevo.", many:"Demasiadas consultas, esperá un momento.", welcome:"Cliente:"},
+    en: {title:"Documents panel", intro:"Upload your team's documentation and try the assistant. Each client sees only their own.",
+      loginH:"Sign in", keyPh:"Your access key (starts with kb_)", enter:"Sign in", logout:"Sign out",
+      docsH:"Your documents", upload:"Upload", docsHelp:"PDF with text, Word (.docx), .md and .txt. Up to 5 MB per file and 50 documents. Uploading a file with the same name replaces the old one.",
+      testH:"Try the assistant", qPh:"Ask a question about your documents", ask:"Ask",
+      repH:"Unanswered questions", repHelp:"Questions the assistant could not answer: each one is a missing document.", repBtn:"Show report",
+      wH:"Widget for your website", wHelp:"Paste this code before </body> on your site. The widget key is public and can only ask questions.",
+      origins:"Allowed sites (one per line, e.g. https://www.yourcompany.com). If empty, it works on any site.", originsPh:"https://www.yourcompany.com", saveOrigins:"Save",
+      noDocs:"You have not uploaded any documents yet.", sections:"sections", del:"Delete", confirmDel:"Delete this document?",
+      badKey:"Invalid key.", pick:"Choose at least one file.", uploading:"Uploading…", ok:"done", saved:"Saved.", none:"No unanswered questions in the last 30 days.",
+      times:"times", stats:"Questions", answered:"answered", helpful:"helpful", asking:"Searching…", sourcesL:"Sources", connErr:"Could not connect. Try again.", many:"Too many requests, please wait a moment.", welcome:"Client:"}
+  };
+  var lang = (navigator.language || "es").toLowerCase().indexOf("en") === 0 ? "en" : "es";
+  try { lang = localStorage.getItem("lang") || lang; } catch (e) {}
+  var key = "";
+  try { key = sessionStorage.getItem("kbkey") || ""; } catch (e) {}
+  var $ = function (id) { return document.getElementById(id); };
+  var t = function (k) { return I[lang][k]; };
+
+  function paint() {
+    document.documentElement.lang = lang;
+    document.querySelectorAll("[data-i]").forEach(function (e) { e.textContent = t(e.getAttribute("data-i")); });
+    document.querySelectorAll("[data-ph]").forEach(function (e) { e.placeholder = t(e.getAttribute("data-ph")); });
+    if (key) { loadDocs(); }
+  }
+  $("lang-es").onclick = function () { lang = "es"; try { localStorage.setItem("lang", lang); } catch (e) {} paint(); };
+  $("lang-en").onclick = function () { lang = "en"; try { localStorage.setItem("lang", lang); } catch (e) {} paint(); };
+
+  function api(path, opts) {
+    opts = opts || {};
+    opts.headers = Object.assign({ "X-API-Key": key }, opts.headers || {});
+    return fetch(path, opts).then(function (r) {
+      if (r.status === 429) throw new Error("many");
+      if (r.status === 401) throw new Error("auth");
+      return r.json().then(function (j) { if (!r.ok) throw new Error(j.detail || "err"); return j; });
+    });
+  }
+  function show(on) { $("login").classList.toggle("hide", on); $("app").classList.toggle("hide", !on); }
+
+  function loadDocs() {
+    return api("/tenant/documents").then(function (j) {
+      var tb = $("docs"); tb.textContent = "";
+      if (!j.documents.length) { var r0 = tb.insertRow(); r0.insertCell().textContent = t("noDocs"); }
+      j.documents.forEach(function (d) {
+        var r = tb.insertRow();
+        r.insertCell().textContent = d.title;
+        var c2 = r.insertCell(); c2.className = "mute"; c2.textContent = d.slug + " · " + d.lang + " · " + d.sections + " " + t("sections");
+        var b = document.createElement("button"); b.className = "del"; b.textContent = t("del");
+        b.onclick = function () {
+          if (!confirm(t("confirmDel"))) return;
+          api("/tenant/documents/" + encodeURIComponent(d.slug), { method: "DELETE" }).then(loadDocs);
+        };
+        r.insertCell().appendChild(b);
+      });
+      show(true);
+      loadWidget();
+    });
+  }
+  function loadWidget() {
+    api("/tenant/widget").then(function (j) {
+      $("snippet").textContent = j.snippet;
+      $("origins").value = j.allowed_origins.join("\n");
+    });
+  }
+  function enter() {
+    key = $("key").value.trim() || key;
+    $("loginErr").textContent = "";
+    loadDocs().then(function () { try { sessionStorage.setItem("kbkey", key); } catch (e) {} $("key").value = ""; })
+      .catch(function () { key = ""; $("loginErr").textContent = t("badKey"); show(false); });
+  }
+  $("enter").onclick = enter;
+  $("key").onkeydown = function (e) { if (e.key === "Enter") enter(); };
+  $("logout").onclick = function () { key = ""; try { sessionStorage.removeItem("kbkey"); } catch (e) {} show(false); };
+
+  $("upload").onclick = function () {
+    var f = $("files").files;
+    if (!f.length) { $("uploadMsg").textContent = t("pick"); return; }
+    var fd = new FormData();
+    for (var i = 0; i < f.length; i++) fd.append("files", f[i]);
+    $("uploadMsg").textContent = t("uploading");
+    $("upload").disabled = true;
+    api("/tenant/documents", { method: "POST", body: fd }).then(function (j) {
+      var box = $("uploadMsg"); box.textContent = "";
+      j.results.forEach(function (r) {
+        var line = document.createElement("div");
+        line.textContent = r.file + ": " + (r.ok ? t("ok") : r.error);
+        if (!r.ok) line.className = "err";
+        box.appendChild(line);
+      });
+      $("files").value = "";
+      return loadDocs();
+    }).catch(function (e) { $("uploadMsg").textContent = e.message === "many" ? t("many") : t("connErr"); })
+      .then(function () { $("upload").disabled = false; });
+  };
+
+  function ask() {
+    var q = $("q").value.trim();
+    if (q.length < 3) return;
+    $("answer").textContent = t("asking"); $("sources").textContent = "";
+    api("/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ question: q }) })
+      .then(function (j) {
+        $("answer").textContent = j.answer;
+        var names = []; j.sources.forEach(function (s) { if (names.indexOf(s.title) < 0) names.push(s.title); });
+        $("sources").textContent = names.length ? t("sourcesL") + ": " + names.join(" · ") : "";
+      }).catch(function (e) { $("answer").textContent = e.message === "many" ? t("many") : t("connErr"); });
+  }
+  $("ask").onclick = ask;
+  $("q").onkeydown = function (e) { if (e.key === "Enter") ask(); };
+
+  $("rep").onclick = function () {
+    api("/tenant/report?days=30").then(function (j) {
+      var box = $("report"); box.textContent = "";
+      var s = document.createElement("p");
+      s.textContent = t("stats") + ": " + j.questions + (j.answer_rate !== null ? " · " + Math.round(j.answer_rate * 100) + "% " + t("answered") : "") +
+        (j.helpful_rate !== null ? " · " + Math.round(j.helpful_rate * 100) + "% " + t("helpful") : "");
+      box.appendChild(s);
+      if (!j.unanswered_questions.length) { var n = document.createElement("p"); n.className = "mute"; n.textContent = t("none"); box.appendChild(n); return; }
+      var ul = document.createElement("ul");
+      j.unanswered_questions.forEach(function (u) { var li = document.createElement("li"); li.textContent = u.question + " (" + u.times + " " + t("times") + ")"; ul.appendChild(li); });
+      box.appendChild(ul);
+    });
+  };
+
+  $("saveOrigins").onclick = function () {
+    var list = $("origins").value.split("\n").map(function (x) { return x.trim(); }).filter(Boolean);
+    api("/tenant/widget", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ allowed_origins: list }) })
+      .then(function (j) { $("originsMsg").className = ""; $("originsMsg").textContent = t("saved"); $("origins").value = j.allowed_origins.join("\n"); })
+      .catch(function (e) { $("originsMsg").className = "err"; $("originsMsg").textContent = e.message; });
+  };
+
+  paint();
+  if (key) { loadDocs().catch(function () { key = ""; show(false); }); }
+})();
+</script>
+</body>
+</html>
