@@ -10,20 +10,23 @@ from app.db import connect
 log = logging.getLogger(__name__)
 
 
-def log_query(question: str, mode: str, passages: list[dict]) -> int | None:
+def log_query(
+    question: str, mode: str, passages: list[dict], tenant_id: int | None = None
+) -> int | None:
     """Store a question and return its id. Never raises: logging must not break /ask."""
     top = passages[0] if passages else None
     try:
         with connect() as conn:
             row = conn.execute(
-                "INSERT INTO query_log (question, mode, answered, top_slug, top_score) "
-                "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                "INSERT INTO query_log (question, mode, answered, top_slug, top_score, tenant_id) "
+                "VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
                 (
                     question,
                     mode,
                     bool(passages),
                     top["slug"] if top else None,
                     float(top["score"]) if top else None,
+                    tenant_id,
                 ),
             ).fetchone()
             return row["id"]
@@ -32,18 +35,23 @@ def log_query(question: str, mode: str, passages: list[dict]) -> int | None:
         return None
 
 
-def save_feedback(query_id: int, helpful: bool) -> bool:
+def save_feedback(query_id: int, helpful: bool, tenant_id: int | None = None) -> bool:
     """Record "was this helpful?". Returns False if the question does not exist."""
     with connect() as conn:
         cur = conn.execute(
-            "UPDATE query_log SET helpful = %s WHERE id = %s", (helpful, query_id)
+            "UPDATE query_log SET helpful = %s "
+            "WHERE id = %s AND tenant_id IS NOT DISTINCT FROM %s",
+            (helpful, query_id, tenant_id),
         )
         return cur.rowcount == 1
 
 
-def report(days: int = 30) -> dict:
+def report(days: int = 30, tenant_id: int | None = None) -> dict:
     """Summary of the last `days` days."""
-    since = "asked_at >= now() - make_interval(days => %(days)s)"
+    since = (
+        "asked_at >= now() - make_interval(days => %(days)s) "
+        "AND tenant_id IS NOT DISTINCT FROM %(tenant)s"
+    )
     with connect() as conn:
         totals = conn.execute(
             f"""
@@ -53,7 +61,7 @@ def report(days: int = 30) -> dict:
                    count(*) FILTER (WHERE helpful)           AS helpful_yes
             FROM query_log WHERE {since}
             """,
-            {"days": days},
+            {"days": days, "tenant": tenant_id},
         ).fetchone()
 
         unanswered = conn.execute(
@@ -63,7 +71,7 @@ def report(days: int = 30) -> dict:
             FROM query_log WHERE NOT answered AND {since}
             GROUP BY 1 ORDER BY times DESC, last_asked DESC LIMIT 20
             """,
-            {"days": days},
+            {"days": days, "tenant": tenant_id},
         ).fetchall()
 
         not_helpful = conn.execute(
@@ -72,7 +80,7 @@ def report(days: int = 30) -> dict:
             FROM query_log WHERE answered AND helpful = false AND {since}
             GROUP BY 1 ORDER BY times DESC LIMIT 10
             """,
-            {"days": days},
+            {"days": days, "tenant": tenant_id},
         ).fetchall()
 
         top_articles = conn.execute(
@@ -81,7 +89,7 @@ def report(days: int = 30) -> dict:
             FROM query_log WHERE answered AND {since}
             GROUP BY 1 ORDER BY times DESC LIMIT 10
             """,
-            {"days": days},
+            {"days": days, "tenant": tenant_id},
         ).fetchall()
 
     n = totals["questions"]

@@ -15,7 +15,8 @@ CREATE TABLE IF NOT EXISTS chunks (
     title    TEXT NOT NULL,
     heading  TEXT NOT NULL,
     content  TEXT NOT NULL,
-    tsv      TSVECTOR          -- filled by app/ingest.py with the stemmer of the article's language
+    tsv      TSVECTOR,         -- filled by app/ingest.py with the stemmer of the article's language
+    tenant_id INT              -- NULL = the public demo knowledge base; otherwise one client's document
 );
 CREATE INDEX IF NOT EXISTS chunks_tsv_idx ON chunks USING GIN (tsv);
 
@@ -31,6 +32,14 @@ CREATE TABLE IF NOT EXISTS query_log (
     helpful   BOOLEAN               -- NULL until the user answers "was this helpful?"
 );
 CREATE INDEX IF NOT EXISTS query_log_asked_at_idx ON query_log (asked_at DESC);
+
+-- One row per client. Only the SHA-256 of the API key is stored, never the key.
+CREATE TABLE IF NOT EXISTS tenants (
+    id           SERIAL PRIMARY KEY,
+    name         TEXT NOT NULL,
+    api_key_hash TEXT NOT NULL UNIQUE,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
 
 -- Words that mean the same thing in IT support (loaded from data/synonyms.txt).
 CREATE TABLE IF NOT EXISTS synonyms (
@@ -59,3 +68,8 @@ def init_schema() -> None:
             conn.execute("DROP TABLE chunks")
         conn.execute(SCHEMA)
         conn.execute("ALTER TABLE synonyms ADD COLUMN IF NOT EXISTS lang TEXT NOT NULL DEFAULT 'en'")
+        # Client separation (added after the first release): NULL = public demo data.
+        conn.execute("ALTER TABLE chunks ADD COLUMN IF NOT EXISTS tenant_id INT")
+        conn.execute("ALTER TABLE query_log ADD COLUMN IF NOT EXISTS tenant_id INT")
+        conn.execute("CREATE INDEX IF NOT EXISTS chunks_tenant_slug_idx ON chunks (tenant_id, slug)")
+        conn.execute("CREATE INDEX IF NOT EXISTS query_log_tenant_idx ON query_log (tenant_id)")

@@ -54,6 +54,7 @@ def build_context(passages: list[dict], max_articles: int = 2) -> str:
     if os.environ.get("ANSWER_CONTEXT", "article") == "passages":
         return _format(passages[:3])
     lang = passages[0].get("lang", "en")
+    tenant_id = passages[0].get("tenant_id")
     slugs: list[str] = []
     for p in passages:
         if p["slug"] not in slugs:
@@ -66,8 +67,9 @@ def build_context(passages: list[dict], max_articles: int = 2) -> str:
             for slug in slugs[:max_articles]:
                 items += conn.execute(
                     "SELECT title, heading, content FROM chunks "
-                    "WHERE slug = %s AND lang = %s ORDER BY id",
-                    (slug, lang),
+                    "WHERE slug = %s AND lang = %s AND tenant_id IS NOT DISTINCT FROM %s "
+                    "ORDER BY id",
+                    (slug, lang, tenant_id),
                 ).fetchall()
         if items:
             return _format(items)

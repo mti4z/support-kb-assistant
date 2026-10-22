@@ -2,7 +2,8 @@
 
 Each article is split into chunks, one per "## heading" section, so that search
 returns the specific passage that answers a question instead of a whole page.
-Running it again is safe: the table is emptied and reloaded.
+Running it again is safe: the public articles are reloaded. Documents uploaded by
+clients (chunks with a tenant_id) are never touched, so a deploy keeps them.
 """
 import re
 from pathlib import Path
@@ -64,9 +65,9 @@ def parse_article(path: Path, lang: str = "en") -> list[dict]:
 
 
 INSERT_CHUNK = """
-INSERT INTO chunks (slug, lang, title, heading, content, tsv)
+INSERT INTO chunks (slug, lang, title, heading, content, tenant_id, tsv)
 VALUES (
-    %(slug)s, %(lang)s, %(title)s, %(heading)s, %(content)s,
+    %(slug)s, %(lang)s, %(title)s, %(heading)s, %(content)s, %(tenant_id)s,
     setweight(to_tsvector(%(config)s::regconfig, %(t)s), 'A') ||
     setweight(to_tsvector(%(config)s::regconfig, %(h)s), 'B') ||
     setweight(to_tsvector(%(config)s::regconfig, %(c)s), 'C')
@@ -74,10 +75,11 @@ VALUES (
 """
 
 
-def _chunk_params(chunk: dict) -> dict:
+def chunk_params(chunk: dict) -> dict:
     """Spanish text is searched without accents (people often type without them)."""
     fold = strip_accents if chunk["lang"] == "es" else (lambda text: text)
     return {
+        "tenant_id": None,
         **chunk,
         "config": TS_CONFIG[chunk["lang"]],
         "t": fold(chunk["title"]),
@@ -96,7 +98,7 @@ def ingest() -> int:
         if syn_file.exists():
             synonyms.extend(parse_synonyms(syn_file, lang))
     with connect() as conn:
-        conn.execute("TRUNCATE chunks RESTART IDENTITY")
+        conn.execute("DELETE FROM chunks WHERE tenant_id IS NULL")
         conn.execute("TRUNCATE synonyms RESTART IDENTITY")
         with conn.cursor() as cur:
             cur.executemany(
@@ -104,7 +106,7 @@ def ingest() -> int:
                 synonyms,
             )
         with conn.cursor() as cur:
-            cur.executemany(INSERT_CHUNK, [_chunk_params(c) for c in chunks])
+            cur.executemany(INSERT_CHUNK, [chunk_params(c) for c in chunks])
     return len(chunks)
 
 

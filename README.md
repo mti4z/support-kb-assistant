@@ -182,13 +182,49 @@ Render (web service) and Neon (PostgreSQL), both on free plans.
 - Start command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - Environment variables: `DATABASE_URL` (Neon connection string), `ADMIN_TOKEN`, and optionally `ANTHROPIC_API_KEY`.
 
+## Client documents (multi-tenant)
+
+Besides the public demo articles, each client can have their own private knowledge base. Everything is separated by client: documents, search, answers, the question log and the report.
+
+Create a client (the API key is shown once; only its SHA-256 hash is stored):
+
+```
+python -m app.tenants create "Acme IT Services"
+python -m app.tenants list
+python -m app.tenants delete <id>      # removes the client and all their data
+```
+
+The client sends the key in the `X-API-Key` header:
+
+| Endpoint | What it does |
+|---|---|
+| `POST /tenant/documents` | Upload one or more `.md`, `.txt`, `.pdf` (with selectable text) or `.docx` files (multipart field `files`). Same file name replaces the old version. |
+| `GET /tenant/documents` | List the client's documents. |
+| `DELETE /tenant/documents/{slug}` | Delete one document. |
+| `POST /ask`, `GET /search` | With the key, they use only that client's documents. Without it, the public demo. A wrong key returns 401 (it never falls back to another knowledge base). |
+| `POST /feedback` | Scoped to the client's own questions. |
+| `GET /tenant/report` | Unanswered questions and usage of that client only. |
+
+Example:
+
+```
+curl -H "X-API-Key: kb_..." -F "files=@vpn-guide.pdf" -F "files=@onboarding.docx" https://YOUR-APP/tenant/documents
+curl -H "X-API-Key: kb_..." -H "Content-Type: application/json" -d '{"question":"How do I connect to the VPN?"}' https://YOUR-APP/ask
+```
+
+How documents are processed: text is extracted, then split by heading (markdown `##` or Word heading styles) or, when there are none, into paragraphs of about 150-250 words. The language of each document (English or Spanish) selects the stemmer. Limits: 5 MB per file, 50 documents per client. Scanned PDFs (images) are not supported (no OCR yet).
+
+Deploys are safe: `python -m app.ingest` reloads only the public articles and never touches client documents.
+
+Not built yet: a web panel for clients, an embeddable chat widget, rate limiting, OCR, and the evaluation of answers on a client's own documents (the retrieval numbers above are for the demo articles only).
+
 ## Tests and CI
 
 ```bash
 pytest -q
 ```
 
-34 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback and the admin report. They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
+50 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
 
 CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 

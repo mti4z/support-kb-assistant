@@ -28,10 +28,10 @@ WITH q AS (
         NULLIF(replace(plainto_tsquery(%(config)s::regconfig, %(question)s)::text, '&', '|'), '')
     ) AS query
 )
-SELECT c.slug, c.lang, c.title, c.heading, c.content,
+SELECT c.slug, c.lang, c.tenant_id, c.title, c.heading, c.content,
        ts_rank_cd(c.tsv, q.query, 32) AS score
 FROM chunks c, q
-WHERE c.lang = %(lang)s AND c.tsv @@ q.query
+WHERE c.lang = %(lang)s AND c.tenant_id IS NOT DISTINCT FROM %(tenant)s AND c.tsv @@ q.query
 ORDER BY score DESC
 LIMIT %(limit)s
 """
@@ -63,8 +63,12 @@ def search(
     min_score: float = MIN_SCORE,
     synonyms: bool | None = None,
     lang: str | None = None,
+    tenant_id: int | None = None,
 ) -> list[dict]:
-    """Search the articles written in the language of the question (or `lang`)."""
+    """Search the articles written in the language of the question (or `lang`).
+
+    tenant_id=None searches the public demo articles; a client id searches only
+    that client's documents (never anyone else's)."""
     if not question.strip():
         return []
     lang = lang or detect_language(question)
@@ -75,6 +79,6 @@ def search(
             query_text = strip_accents(query_text)
         rows = conn.execute(
             SEARCH_SQL,
-            {"question": query_text, "limit": limit, "lang": lang, "config": TS_CONFIG[lang]},
+            {"question": query_text, "limit": limit, "lang": lang, "tenant": tenant_id, "config": TS_CONFIG[lang]},
         ).fetchall()
     return [r for r in rows if r["score"] >= min_score]
