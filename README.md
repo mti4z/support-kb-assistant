@@ -271,7 +271,7 @@ Set a variable to `0` to remove that limit. The counters live in memory: they re
 pytest -q
 ```
 
-71 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
+72 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
 
 CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 
@@ -281,3 +281,7 @@ CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 - Refusing out-of-scope questions is weak (see above). A relevance check on the generated answer, or a classifier, could help.
 - No rate limiting: someone could fill the question log.
 - Next: write Spanish stop-word and synonym lists tuned on more questions, improve how out-of-scope questions are rejected, add articles guided by the unanswered-questions report, grow the evaluation sets (ideally with questions written by someone else), and try a real sentence-embedding model for semantic search.
+
+## Privacy and terms (draft)
+
+`/privacy` serves a bilingual draft of the privacy notice and terms of use, linked from the home page. It describes what the service really stores (document chunks, logged questions, hashed keys), who processes it (Render, Neon, optionally Anthropic) and how a client can delete data. It is marked as a draft: have an accountant or lawyer review it before signing anything with a client. The contact link uses `CONTACT_EMAIL`.

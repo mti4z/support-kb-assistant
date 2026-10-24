@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacidad y términos · Privacy and terms</title>
+<style>
+  :root { --bg:#fff; --fg:#1b1f24; --muted:#5b6570; --accent:#1f5fbf; --warn:#fff4d6; --line:#e3e7ec; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#14181d; --fg:#e8ecf0; --muted:#9aa5b1; --accent:#7fb0ff; --warn:#3a3217; --line:#2a3138; } }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.6 system-ui,sans-serif; }
+  main { max-width:720px; margin:0 auto; padding:24px 16px 60px; }
+  h1 { font-size:1.6rem; } h2 { font-size:1.15rem; margin-top:1.8em; }
+  .draft { background:var(--warn); border:1px solid var(--line); padding:10px 14px; border-radius:8px; }
+  .lang button { background:none; border:1px solid var(--line); color:var(--fg); padding:4px 12px; border-radius:6px; cursor:pointer; }
+  .lang button[aria-pressed=true] { border-color:var(--accent); color:var(--accent); }
+  a { color:var(--accent); } .mute { color:var(--muted); font-size:.9rem; }
+  [lang-block] { display:none; } [lang-block].on { display:block; }
+</style>
+</head>
+<body>
+<main>
+<p class="lang"><button id="bes" aria-pressed="true">Español</button> <button id="ben" aria-pressed="false">English</button></p>
+
+<div lang-block="es" class="on">
+<h1>Privacidad y términos</h1>
+<p class="draft"><strong>Borrador.</strong> Este texto describe cómo funciona hoy el servicio. Está pendiente de revisión por un contador o abogado y puede cambiar antes de que se firme un acuerdo con un cliente. Hasta entonces, no cargues documentos con datos personales o confidenciales.</p>
+
+<h2>Qué guardamos</h2>
+<ul>
+<li><strong>Documentos del cliente:</strong> el texto extraído de los archivos que subís (.md, .txt, .pdf, .docx), dividido en fragmentos, con el nombre del archivo y la fecha de carga. El archivo original no se conserva.</li>
+<li><strong>Preguntas:</strong> el texto de cada pregunta hecha al asistente, si se pudo responder, qué documento fue el principal y si el usuario marcó la respuesta como útil o no. No guardamos la dirección IP ni datos del visitante.</li>
+<li><strong>Claves:</strong> la clave secreta se guarda solo como hash; no podemos recuperarla. La clave pública del widget solo permite hacer preguntas.</li>
+</ul>
+
+<h2>Quién procesa los datos</h2>
+<ul>
+<li>El servicio corre en Render y la base de datos en Neon (PostgreSQL). Son proveedores externos, y los datos se almacenan en sus servidores.</li>
+<li>Si el cliente usa respuestas redactadas con IA, la pregunta y los fragmentos relevantes de sus documentos se envían a la API de Anthropic para generar la respuesta. Si no está activada, no se envía nada a Anthropic y se muestran los fragmentos citados.</li>
+<li>Los documentos de un cliente nunca se usan para responder a otro cliente. No vendemos datos ni los usamos para publicidad.</li>
+</ul>
+
+<h2>Control y borrado</h2>
+<ul>
+<li>Podés borrar cualquier documento desde el panel en cualquier momento.</li>
+<li>Si terminás la prueba, pedinos por email el borrado completo de tu cliente (documentos, preguntas y claves) y lo hacemos y te lo confirmamos.</li>
+<li>Las preguntas registradas se conservan mientras dure la relación con el cliente. Todavía no hay borrado automático.</li>
+</ul>
+
+<h2>Condiciones de uso</h2>
+<ul>
+<li>El servicio está en fase de prueba y se ofrece tal cual está, sin garantía de disponibilidad. Las respuestas pueden ser incorrectas: siempre muestran sus fuentes para que se verifiquen.</li>
+<li>Solo subí documentos que tenés derecho a usar. No subas contraseñas, datos de tarjetas ni datos personales de terceros.</li>
+<li>Podemos suspender una cuenta que haga un uso abusivo del servicio.</li>
+</ul>
+
+<h2>Contacto</h2>
+<p>Para consultas, acceso o borrado de datos: <a class="mail" href="#"></a></p>
+<p class="mute">Última actualización: octubre de 2026.</p>
+</div>
+
+<div lang-block="en">
+<h1>Privacy and terms</h1>
+<p class="draft"><strong>Draft.</strong> This text describes how the service works today. It is pending review by an accountant or lawyer and may change before an agreement is signed with a client. Until then, please do not upload documents containing personal or confidential data.</p>
+
+<h2>What we store</h2>
+<ul>
+<li><strong>Client documents:</strong> the text extracted from the files you upload (.md, .txt, .pdf, .docx), split into chunks, with the file name and upload date. The original file is not kept.</li>
+<li><strong>Questions:</strong> the text of each question asked to the assistant, whether it could be answered, which document was the top match, and whether the user rated the answer helpful. We do not store IP addresses or visitor details.</li>
+<li><strong>Keys:</strong> the secret key is stored only as a hash and cannot be recovered. The public widget key can only ask questions.</li>
+</ul>
+
+<h2>Who processes the data</h2>
+<ul>
+<li>The service runs on Render and the database on Neon (PostgreSQL). They are third-party providers and the data is stored on their servers.</li>
+<li>If the client uses AI-written answers, the question and the relevant chunks of their documents are sent to the Anthropic API to write the answer. If it is turned off, nothing is sent to Anthropic and the cited passages are shown instead.</li>
+<li>One client's documents are never used to answer another client. We do not sell data or use it for advertising.</li>
+</ul>
+
+<h2>Control and deletion</h2>
+<ul>
+<li>You can delete any document from the panel at any time.</li>
+<li>If you end the trial, email us to delete your whole client (documents, questions and keys); we will do it and confirm.</li>
+<li>Logged questions are kept for as long as the client relationship lasts. There is no automatic deletion yet.</li>
+</ul>
+
+<h2>Terms of use</h2>
+<ul>
+<li>The service is in a trial phase and provided as is, with no uptime guarantee. Answers can be wrong: they always show their sources so they can be checked.</li>
+<li>Only upload documents you have the right to use. Do not upload passwords, card data or third-party personal data.</li>
+<li>We may suspend an account that abuses the service.</li>
+</ul>
+
+<h2>Contact</h2>
+<p>For questions, data access or deletion: <a class="mail" href="#"></a></p>
+<p class="mute">Last updated: October 2026.</p>
+</div>
+
+<p><a href="/">&larr; Home</a></p>
+</main>
+<script>
+  var CONTACT_EMAIL = "";
+  (function () {
+    var a = document.querySelectorAll(".mail");
+    for (var i = 0; i < a.length; i++) {
+      if (CONTACT_EMAIL) { a[i].href = "mailto:" + CONTACT_EMAIL; a[i].textContent = CONTACT_EMAIL; }
+      else { a[i].removeAttribute("href"); a[i].textContent = "(email pending)"; }
+    }
+    function set(l) {
+      var b = document.querySelectorAll("[lang-block]");
+      for (var i = 0; i < b.length; i++) b[i].className = b[i].getAttribute("lang-block") === l ? "on" : "";
+      document.documentElement.lang = l;
+      document.getElementById("bes").setAttribute("aria-pressed", l === "es");
+      document.getElementById("ben").setAttribute("aria-pressed", l === "en");
+    }
+    document.getElementById("bes").onclick = function () { set("es"); };
+    document.getElementById("ben").onclick = function () { set("en"); };
+    if ((navigator.language || "").indexOf("es") !== 0) set("en");
+  })();
+</script>
+</body>
+</html>

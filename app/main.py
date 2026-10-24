@@ -189,6 +189,21 @@ STATIC = Path(__file__).parent / "static"
 ORIGIN_RE = re.compile(r"^https?://[A-Za-z0-9.-]+(:\d{1,5})?$")
 
 
+@app.get("/privacy", include_in_schema=False)
+def privacy():
+    """Privacy and terms (draft). CONTACT_EMAIL fills the contact link, like the home page."""
+    html = (STATIC / "privacy.html").read_text(encoding="utf-8")
+    email = os.environ.get("CONTACT_EMAIL", "").strip()
+    if EMAIL_RE.match(email):
+        html = re.sub(
+            r'var CONTACT_EMAIL = "[^"]*";',
+            lambda _: f"var CONTACT_EMAIL = {json.dumps(email)};",
+            html,
+            count=1,
+        )
+    return HTMLResponse(html)
+
+
 @app.get("/panel", include_in_schema=False)
 def panel():
     """The client panel. The page itself holds no data: it asks the API with the client's key."""

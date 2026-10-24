@@ -181,3 +181,13 @@ def test_report_has_weekly_totals():
         assert sum(w["answered"] for w in r["by_week"]) == 1
     finally:
         delete_tenant(row["id"])
+
+
+def test_privacy_page_is_served_with_contact_email(monkeypatch):
+    from fastapi.testclient import TestClient
+    from app.main import app
+    monkeypatch.setenv("CONTACT_EMAIL", "hola@example.com")
+    c = TestClient(app)
+    r = c.get("/privacy")
+    assert r.status_code == 200 and "hola@example.com" in r.text and "Borrador" in r.text
+    assert 'href="/privacy"' in c.get("/").text
