@@ -28,6 +28,15 @@ SYSTEM_PROMPT = (
     "Write plain text only: no Markdown, no asterisks, no headings, no tables; "
     "number steps as '1.', '2.' on separate lines."
 )
+VOSEO = (
+    " When you reply in Spanish, use the Argentine voseo (vos, probá, fijate, abrí), "
+    "never the tuteo (tú, prueba, abre)."
+)
+
+
+def system_prompt() -> str:
+    """ES_VOSEO=0 turns the Argentine voseo off (neutral Spanish)."""
+    return SYSTEM_PROMPT + (VOSEO if os.environ.get("ES_VOSEO", "1") != "0" else "")
 
 
 def plain_text(text: str) -> str:
@@ -97,7 +106,7 @@ def _with_claude(question: str, passages: list[dict]) -> str:
     msg = client.messages.create(
         model=MODEL,
         max_tokens=1500,
-        system=SYSTEM_PROMPT,
+        system=system_prompt(),
         messages=[
             {"role": "user", "content": f"Passages:\n{context}\n\nQuestion: {question}"}
         ],

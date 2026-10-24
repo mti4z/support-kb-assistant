@@ -293,3 +293,11 @@ def test_plain_text_removes_markdown_marks():
     assert "**" not in out and "#" not in out and "`" not in out
     assert out.splitlines()[0] == 'Según "VPN", prueba:'
     assert "- uno" in out and "- dos" in out
+
+
+def test_voseo_is_on_by_default_and_can_be_turned_off(monkeypatch):
+    from app.answer import system_prompt
+    monkeypatch.delenv("ES_VOSEO", raising=False)
+    assert "voseo" in system_prompt()
+    monkeypatch.setenv("ES_VOSEO", "0")
+    assert "voseo" not in system_prompt()
