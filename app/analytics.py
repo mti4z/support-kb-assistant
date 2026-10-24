@@ -93,6 +93,17 @@ def report(days: int = 30, tenant_id: int | None = None) -> dict:
             {"days": days, "tenant": tenant_id},
         ).fetchall()
 
+        by_week = conn.execute(
+            f"""
+            SELECT date_trunc('week', asked_at)::date AS week,
+                   count(*) AS questions,
+                   count(*) FILTER (WHERE answered) AS answered
+            FROM query_log WHERE {since}
+            GROUP BY 1 ORDER BY 1
+            """,
+            {"days": days, "tenant": tenant_id},
+        ).fetchall()
+
     to_review = documents_to_review(days, tenant_id)
 
     n = totals["questions"]
@@ -103,6 +114,11 @@ def report(days: int = 30, tenant_id: int | None = None) -> dict:
         "answer_rate": round(totals["answered"] / n, 3) if n else None,
         "rated": rated,
         "helpful_rate": round(totals["helpful_yes"] / rated, 3) if rated else None,
+        "answered": totals["answered"],
+        "by_week": [
+            {"week": r["week"].isoformat(), "questions": r["questions"], "answered": r["answered"]}
+            for r in by_week
+        ],
         "unanswered_questions": unanswered,
         "articles_rated_not_helpful": not_helpful,
         "most_used_articles": top_articles,

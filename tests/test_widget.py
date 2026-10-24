@@ -166,3 +166,18 @@ def test_review_list_is_scoped_to_the_client(tenant):
         assert "other-doc" in _review(other_key) and "other-doc" not in _review(key)
     finally:
         delete_tenant(other["id"])
+
+
+def test_report_has_weekly_totals():
+    from app.analytics import log_query, report
+    from app.tenants import create_tenant, delete_tenant
+    row, _ = create_tenant("weekly-test")
+    try:
+        log_query("alpha question", "answer", [{"slug": "x", "score": 1.0}], tenant_id=row["id"])
+        log_query("beta question", "no_match", [], tenant_id=row["id"])
+        r = report(30, row["id"])
+        assert r["answered"] == 1 and r["questions"] == 2
+        assert sum(w["questions"] for w in r["by_week"]) == 2
+        assert sum(w["answered"] for w in r["by_week"]) == 1
+    finally:
+        delete_tenant(row["id"])
