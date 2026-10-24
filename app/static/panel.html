@@ -71,6 +71,13 @@
     </section>
 
     <section class="card">
+      <h2 data-i="qualH"></h2>
+      <p class="mute" data-i="qualHelp"></p>
+      <button class="ghost" id="qual" data-i="qualBtn"></button>
+      <div id="qualOut"></div>
+    </section>
+
+    <section class="card">
       <h2 data-i="repH"></h2>
       <p class="mute" data-i="repHelp"></p>
       <button class="ghost" id="rep" data-i="repBtn"></button>
@@ -94,7 +101,7 @@
       loginH:"Entrar", keyPh:"Tu clave de acceso (empieza con kb_)", enter:"Entrar", logout:"Salir",
       docsH:"Tus documentos", upload:"Subir", docsHelp:"Acepta PDF con texto, Word (.docx), .md y .txt. Hasta 5 MB por archivo y 50 documentos. Si subís un archivo con el mismo nombre, reemplaza al anterior.",
       testH:"Probar el asistente", qPh:"Hacé una pregunta de tu documentación", ask:"Preguntar",
-      repH:"Preguntas sin respuesta y documentos a revisar", repHelp:"Las preguntas que el asistente no pudo responder (cada una es un documento que falta) y los documentos que conviene revisar o actualizar.", repBtn:"Ver reporte", copySum:"Copiar resumen", copied:"Copiado", sumLine:"Últimos {d} días: el asistente recibió {q} consultas y respondió {a} con fuentes citadas. {u} quedaron sin respuesta y marcan documentos que faltan.",
+      qualH:"Calidad de la búsqueda sobre tus documentos", qualHelp:"Toma una muestra de secciones de tus documentos, arma una pregunta para cada una y revisa si el asistente lo encuentra. Sirve para detectar documentos difíciles de encontrar; no es una auditoría.", qualBtn:"Probar mis documentos", qualRun:"Probando…", qualNone:"Subí al menos un documento primero.", qualRes:"De {n} secciones de tus documentos probadas, el documento correcto fue el primer resultado en {a}% y estuvo entre los 3 primeros en {b}%.", qualHead:"Estimación optimista: las preguntas salen de los títulos de cada sección. Con la clave de Claude activada se redactan preguntas más realistas.", qualMiss:"No se encontraron (revisá título, redacción o agregá palabras que usaría la gente):", qualAllOk:"Todos se encontraron.", repH:"Preguntas sin respuesta y documentos a revisar", repHelp:"Las preguntas que el asistente no pudo responder (cada una es un documento que falta) y los documentos que conviene revisar o actualizar.", repBtn:"Ver reporte", copySum:"Copiar resumen", copied:"Copiado", sumLine:"Últimos {d} días: el asistente recibió {q} consultas y respondió {a} con fuentes citadas. {u} quedaron sin respuesta y marcan documentos que faltan.",
       wH:"Widget para tu sitio web", wHelp:"Pegá este código antes de </body> en tu sitio. La clave del widget es pública y solo permite hacer preguntas.",
       origins:"Sitios autorizados (uno por línea, por ejemplo https://www.tuempresa.com). Si lo dejás vacío, funciona en cualquier sitio.", originsPh:"https://www.tuempresa.com", saveOrigins:"Guardar",
       noDocs:"Todavía no subiste documentos.", sections:"secciones", section:"secci\u00f3n", del:"Borrar", confirmDel:"¿Borrar este documento?",
@@ -104,7 +111,7 @@
       loginH:"Sign in", keyPh:"Your access key (starts with kb_)", enter:"Sign in", logout:"Sign out",
       docsH:"Your documents", upload:"Upload", docsHelp:"PDF with text, Word (.docx), .md and .txt. Up to 5 MB per file and 50 documents. Uploading a file with the same name replaces the old one.",
       testH:"Try the assistant", qPh:"Ask a question about your documents", ask:"Ask",
-      repH:"Unanswered questions and documents to review", repHelp:"Questions the assistant could not answer (each one is a missing document) and the documents worth reviewing or updating.", repBtn:"Show report", copySum:"Copy summary", copied:"Copied", sumLine:"Last {d} days: the assistant got {q} questions and answered {a} with cited sources. {u} went unanswered and point to missing documents.",
+      qualH:"Search quality on your documents", qualHelp:"Takes a sample of sections of your documents, writes a question for each and checks whether the assistant finds it. It helps spot documents that are hard to find; it is not an audit.", qualBtn:"Test my documents", qualRun:"Testing…", qualNone:"Upload at least one document first.", qualRes:"Of {n} sections of your documents tested, the right document was the first result {a}% of the time and in the top 3 {b}% of the time.", qualHead:"Optimistic estimate: the questions come from each section's title. With Claude enabled, more realistic questions are written.", qualMiss:"Not found (review the title and wording, or add words people would use):", qualAllOk:"All were found.", repH:"Unanswered questions and documents to review", repHelp:"Questions the assistant could not answer (each one is a missing document) and the documents worth reviewing or updating.", repBtn:"Show report", copySum:"Copy summary", copied:"Copied", sumLine:"Last {d} days: the assistant got {q} questions and answered {a} with cited sources. {u} went unanswered and point to missing documents.",
       wH:"Widget for your website", wHelp:"Paste this code before </body> on your site. The widget key is public and can only ask questions.",
       origins:"Allowed sites (one per line, e.g. https://www.yourcompany.com). If empty, it works on any site.", originsPh:"https://www.yourcompany.com", saveOrigins:"Save",
       noDocs:"You have not uploaded any documents yet.", sections:"sections", section:"section", del:"Delete", confirmDel:"Delete this document?",
@@ -207,6 +214,24 @@
   }
   $("ask").onclick = ask;
   $("q").onkeydown = function (e) { if (e.key === "Enter") ask(); };
+
+  $("qual").onclick = function () {
+    var out = $("qualOut"); out.textContent = t("qualRun");
+    api("/tenant/quality", { method: "POST" }).then(function (j) {
+      out.textContent = "";
+      if (!j.tested) { out.textContent = t("qualNone"); return; }
+      var p = document.createElement("p");
+      p.textContent = t("qualRes").replace("{n}", j.tested).replace("{a}", Math.round(j.top1 * 100)).replace("{b}", Math.round(j.top3 * 100));
+      out.appendChild(p);
+      if (j.method !== "claude") { var w = document.createElement("p"); w.className = "mute"; w.textContent = t("qualHead"); out.appendChild(w); }
+      var m = document.createElement("p"); m.textContent = j.missed.length ? t("qualMiss") : t("qualAllOk"); out.appendChild(m);
+      if (j.missed.length) {
+        var ul = document.createElement("ul");
+        j.missed.forEach(function (x) { var li = document.createElement("li"); li.textContent = x.title + " · " + x.heading + " (\u201C" + x.question + "\u201D)"; ul.appendChild(li); });
+        out.appendChild(ul);
+      }
+    }).catch(function (e) { out.textContent = e.message === "many" ? t("many") : t("connErr"); });
+  };
 
   $("rep").onclick = function () {
     api("/tenant/report?days=30").then(function (j) {

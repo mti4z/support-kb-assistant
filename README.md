@@ -271,7 +271,7 @@ Set a variable to `0` to remove that limit. The counters live in memory: they re
 pytest -q
 ```
 
-72 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
+75 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
 
 CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 
@@ -285,3 +285,7 @@ CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 ## Privacy and terms (draft)
 
 `/privacy` serves a bilingual draft of the privacy notice and terms of use, linked from the home page. It describes what the service really stores (document chunks, logged questions, hashed keys), who processes it (Render, Neon, optionally Anthropic) and how a client can delete data. It is marked as a draft: have an accountant or lawyer review it before signing anything with a client. The contact link uses `CONTACT_EMAIL`.
+
+## Quality check on a client's documents
+
+`POST /tenant/quality` (button "Probar mis documentos" in the panel) takes a random sample of up to 20 sections of the client's own documents, writes one question per section, runs the normal search and reports how often the right document was the first result and in the top 3, plus the sections that were not found. With `ANTHROPIC_API_KEY` the questions are written by Claude (in the section's language, without copying its words); without it the section heading is used, which is an optimistic estimate and the panel says so. The same model family writes the questions, so treat it as a way to find documents that are hard to retrieve, not as an audit of answer accuracy. Limited to 3 runs per hour per client (`QUALITY_PER_HOUR`).

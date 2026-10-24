@@ -191,3 +191,49 @@ def test_privacy_page_is_served_with_contact_email(monkeypatch):
     r = c.get("/privacy")
     assert r.status_code == 200 and "hola@example.com" in r.text and "Borrador" in r.text
     assert 'href="/privacy"' in c.get("/").text
+
+
+DOC = (
+    "# Zorblax setup\n\n## Quillmoth install\n\nRun the quillmoth installer and restart. " * 3
+    + "\n\n## Frobnitz reset\n\nHold the frobnitz button for ten seconds to reset it. " * 3
+)
+
+
+@pytest.fixture
+def fresh():
+    from app.tenants import create_tenant, delete_tenant
+    row, key = create_tenant("quality-test")
+    yield key
+    delete_tenant(row["id"])
+
+
+def test_quality_check_scores_the_clients_own_documents(fresh):
+    key = fresh
+    assert client.post("/tenant/documents", files={"files": ("zorblax.md", DOC.encode(), "text/markdown")},
+                headers={"X-API-Key": key}).status_code == 200
+    r = client.post("/tenant/quality", headers={"X-API-Key": key})
+    assert r.status_code == 200
+    j = r.json()
+    assert j["tested"] >= 2 and j["method"] in ("headings", "claude")
+    assert j["top3"] == 1.0 and j["missed"] == []
+
+
+def test_quality_check_lists_what_was_not_found(fresh, monkeypatch):
+    import app.quality as quality
+    key = fresh
+    assert client.post("/tenant/documents", files={"files": ("zorblax.md", DOC.encode(), "text/markdown")},
+                headers={"X-API-Key": key}).status_code == 200
+    monkeypatch.setattr(quality, "make_question", lambda c: ("nothing related at all", "claude"))
+    j = client.post("/tenant/quality", headers={"X-API-Key": key}).json()
+    assert j["top3"] == 0.0 and j["missed"] and j["method"] == "claude"
+
+
+def test_quality_check_needs_a_key_and_a_document():
+    from app.tenants import create_tenant, delete_tenant
+    assert client.post("/tenant/quality").status_code == 401
+    row, key = create_tenant("empty-quality")
+    try:
+        j = client.post("/tenant/quality", headers={"X-API-Key": key}).json()
+        assert j["tested"] == 0 and j["top3"] is None
+    finally:
+        delete_tenant(row["id"])

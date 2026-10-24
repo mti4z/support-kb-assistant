@@ -14,9 +14,10 @@ from app.answer import build_answer
 from app.documents import (
     MAX_BYTES, DocumentError, delete_document, list_documents, save_document,
 )
+from app.quality import run_quality
 from app.ratelimit import check_questions, check_uploads
 from app.search import search
-from app.ratelimit import check_widget
+from app.ratelimit import check_quality, check_widget
 from app.tenants import (
     get_tenant, get_tenant_by_widget_token, get_widget, set_allowed_origins,
 )
@@ -181,6 +182,14 @@ def tenant_report(days: int = Query(30, ge=1, le=365), x_api_key: str | None = H
     """Unanswered questions and usage of this client only."""
     tenant = required_tenant(x_api_key)
     return report(days, tenant["id"])
+
+
+@app.post("/tenant/quality")
+def tenant_quality(request: Request, x_api_key: str | None = Header(default=None)):
+    """Test how well the assistant finds this client's own documents."""
+    tenant = required_tenant(x_api_key)
+    check_quality(tenant["id"])
+    return run_quality(tenant["id"])
 
 
 # ---- Panel and widget -----------------------------------------------------

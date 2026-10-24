@@ -97,6 +97,13 @@ def check_uploads(tenant_id: int) -> None:
         _refuse(wait, "uploads")
 
 
+def check_quality(tenant_id: int) -> None:
+    """The quality check can make ~20 calls to Claude, so allow it only a few times an hour."""
+    wait = window.hit(f"quality:{tenant_id}", _int("QUALITY_PER_HOUR", 3), 3600)
+    if wait:
+        _refuse(wait, "quality checks")
+
+
 def check_widget(request: Request, tenant_id: int) -> None:
     """The widget is open to anyone who visits the client's site: limit the client
     as a whole and each visitor, so one visitor cannot use up the client's allowance."""
