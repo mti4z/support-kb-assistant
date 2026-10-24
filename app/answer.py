@@ -7,6 +7,7 @@ Two modes:
 If the API call fails for any reason we fall back to the extractive answer.
 """
 import os
+import re
 
 from app.lang import detect_language
 
@@ -23,8 +24,18 @@ SYSTEM_PROMPT = (
     "passages provided. Be concise and give steps as a short list when useful. "
     "Mention the article title(s) you used. If the passages do not contain the "
     "answer, say you don't know and suggest opening a ticket. "
-    "Reply in the same language as the user's question."
+    "Reply in the same language as the user's question. "
+    "Write plain text only: no Markdown, no asterisks, no headings, no tables; "
+    "number steps as '1.', '2.' on separate lines."
 )
+
+
+def plain_text(text: str) -> str:
+    """Remove the Markdown marks the page cannot render (it shows text as is)."""
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text, flags=re.S)
+    text = re.sub(r"(?m)^\s{0,3}#{1,6}\s+", "", text)
+    text = re.sub(r"(?m)^(\s*)[*-]\s+", r"\1- ", text)
+    return text.replace("`", "")
 
 
 def message_text(msg) -> str:
@@ -91,7 +102,7 @@ def _with_claude(question: str, passages: list[dict]) -> str:
             {"role": "user", "content": f"Passages:\n{context}\n\nQuestion: {question}"}
         ],
     )
-    return message_text(msg)
+    return plain_text(message_text(msg))
 
 
 def build_answer(question: str, passages: list[dict]) -> tuple[str, str]:

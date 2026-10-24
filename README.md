@@ -271,7 +271,7 @@ Set a variable to `0` to remove that limit. The counters live in memory: they re
 pytest -q
 ```
 
-75 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
+76 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
 
 CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 

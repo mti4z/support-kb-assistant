@@ -285,3 +285,11 @@ def test_home_page_gets_the_contact_email_from_the_environment(monkeypatch):
     assert 'var CONTACT_EMAIL = "hola@example.com";' in client.get("/").text
     monkeypatch.setenv("CONTACT_EMAIL", 'x";alert(1);//')  # not an email: ignored
     assert "alert(1)" not in client.get("/").text
+
+
+def test_plain_text_removes_markdown_marks():
+    from app.answer import plain_text
+    out = plain_text('Según **"VPN"**, prueba:\n## Pasos\n* uno\n- dos\n`ping`')
+    assert "**" not in out and "#" not in out and "`" not in out
+    assert out.splitlines()[0] == 'Según "VPN", prueba:'
+    assert "- uno" in out and "- dos" in out
