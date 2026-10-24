@@ -109,3 +109,60 @@ def test_widget_questions_appear_in_the_clients_report(tenant):
 def test_home_page_links_to_the_client_panel():
     html = client.get("/").text
     assert 'href="/panel"' in html and 'clients: "Client login"' in html and "Acceso clientes" in html
+
+
+# ---- documents to review ----------------------------------------------------
+
+def _age(tenant_id, slug, days):
+    """Pretend a document was uploaded `days` days ago."""
+    from app.db import connect
+    with connect() as conn:
+        conn.execute(
+            "UPDATE chunks SET created_at = now() - make_interval(days => %s) WHERE tenant_id = %s AND slug = %s",
+            (days, tenant_id, slug),
+        )
+
+
+def _review(key, **params):
+    r = client.get("/tenant/report", headers={"X-API-Key": key}, params=params)
+    return {d["slug"]: d for d in r.json()["documents_to_review"]}
+
+
+def test_old_document_is_marked_stale_and_reupload_resets_it(tenant):
+    t, key, _ = tenant
+    assert "printers" not in _review(key)             # just uploaded: fine
+    _age(t["id"], "printers", 200)
+    assert "stale" in _review(key)["printers"]["reasons"]
+    save_document(t["id"], "printers.md", DOC.encode())  # updating the document
+    assert "printers" not in _review(key)
+
+
+def test_document_with_not_helpful_votes_is_flagged(tenant):
+    t, key, token = tenant
+    q = {"token": token, "question": "how do I use the quokka printer zorblax?"}
+    ids = [client.post("/widget/ask", json=q, headers={"X-Forwarded-For": f"5.5.5.{i}"}).json()["query_id"] for i in range(3)]
+    for qid in ids[:2]:
+        client.post("/feedback", json={"query_id": qid, "helpful": False}, headers={"X-API-Key": key})
+    client.post("/feedback", json={"query_id": ids[2], "helpful": True}, headers={"X-API-Key": key})
+    item = _review(key)["printers"]
+    assert "rated_not_helpful" in item["reasons"]
+    assert item["rated_not_helpful"] == 2 and item["rated_helpful"] == 1 and item["times_used"] >= 3
+
+
+def test_unused_document_needs_age_and_is_not_flagged_when_new(tenant):
+    t, key, _ = tenant
+    save_document(t["id"], "never-asked.md", b"# Old policy\n\n## Wombat rules\nThe wombat rules apply to every wombat meeting room.")
+    assert "never-asked" not in _review(key)           # new: not "unused" yet
+    _age(t["id"], "never-asked", 45)
+    assert "unused" in _review(key, days=30)["never-asked"]["reasons"]
+
+
+def test_review_list_is_scoped_to_the_client(tenant):
+    t, key, _ = tenant
+    other, other_key = create_tenant("Other " + uuid.uuid4().hex[:6])
+    try:
+        save_document(other["id"], "other-doc.md", b"# Other\n\n## Part\nSome text about giraffes and tigers.")
+        _age(other["id"], "other-doc", 400)
+        assert "other-doc" in _review(other_key) and "other-doc" not in _review(key)
+    finally:
+        delete_tenant(other["id"])

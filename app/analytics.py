@@ -4,6 +4,7 @@ The most useful output for a support team is the list of questions nobody could
 answer: each frequent one is an article that should be written.
 """
 import logging
+import os
 
 from app.db import connect
 
@@ -92,6 +93,8 @@ def report(days: int = 30, tenant_id: int | None = None) -> dict:
             {"days": days, "tenant": tenant_id},
         ).fetchall()
 
+    to_review = documents_to_review(days, tenant_id)
+
     n = totals["questions"]
     rated = totals["rated"]
     return {
@@ -103,4 +106,64 @@ def report(days: int = 30, tenant_id: int | None = None) -> dict:
         "unanswered_questions": unanswered,
         "articles_rated_not_helpful": not_helpful,
         "most_used_articles": top_articles,
+        "documents_to_review": to_review,
     }
+
+
+def documents_to_review(days: int = 30, tenant_id: int | None = None) -> list[dict]:
+    """Documents that probably need attention, most urgent first.
+
+    Reasons (a document can have several):
+      rated_not_helpful  at least 2 "not helpful" votes, and more than "helpful" ones
+      stale              uploaded STALE_DAYS (default 180) or more days ago (clients only)
+      unused             older than the report window and never the best match in it (clients only)
+    """
+    stale_days = int(os.environ.get("STALE_DAYS", "180"))
+    with connect() as conn:
+        rows = conn.execute(
+            """
+            SELECT c.slug, min(c.title) AS title,
+                   extract(epoch FROM now() - max(c.created_at)) / 86400 AS age_days,
+                   coalesce(u.used, 0) AS used,
+                   coalesce(u.not_helpful, 0) AS not_helpful,
+                   coalesce(u.helpful, 0) AS helpful
+            FROM chunks c
+            LEFT JOIN (
+                SELECT top_slug, count(*) AS used,
+                       count(*) FILTER (WHERE helpful = false) AS not_helpful,
+                       count(*) FILTER (WHERE helpful) AS helpful
+                FROM query_log
+                WHERE answered
+                  AND asked_at >= now() - make_interval(days => %(days)s)
+                  AND tenant_id IS NOT DISTINCT FROM %(tenant)s
+                GROUP BY top_slug
+            ) u ON u.top_slug = c.slug
+            WHERE c.tenant_id IS NOT DISTINCT FROM %(tenant)s
+            GROUP BY c.slug, u.used, u.not_helpful, u.helpful
+            """,
+            {"days": days, "tenant": tenant_id},
+        ).fetchall()
+
+    out = []
+    for r in rows:
+        reasons = []
+        if r["not_helpful"] >= 2 and r["not_helpful"] > r["helpful"]:
+            reasons.append("rated_not_helpful")
+        if tenant_id is not None and r["age_days"] >= stale_days:
+            reasons.append("stale")
+        if tenant_id is not None and r["used"] == 0 and r["age_days"] >= days:
+            reasons.append("unused")
+        if reasons:
+            out.append(
+                {
+                    "slug": r["slug"],
+                    "title": r["title"],
+                    "reasons": reasons,
+                    "times_used": r["used"],
+                    "rated_not_helpful": r["not_helpful"],
+                    "rated_helpful": r["helpful"],
+                    "age_days": int(r["age_days"]),
+                }
+            )
+    out.sort(key=lambda d: (-len(d["reasons"]), -d["rated_not_helpful"], -d["age_days"]))
+    return out[:20]

@@ -77,3 +77,5 @@ def init_schema() -> None:
         conn.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS widget_token TEXT")
         conn.execute("ALTER TABLE tenants ADD COLUMN IF NOT EXISTS allowed_origins TEXT[] NOT NULL DEFAULT '{}'")
         conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS tenants_widget_token_idx ON tenants (widget_token)")
+        # When each chunk was stored: a document's age is how long ago it was last uploaded.
+        conn.execute("ALTER TABLE chunks ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ NOT NULL DEFAULT now()")

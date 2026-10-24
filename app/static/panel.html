@@ -94,22 +94,22 @@
       loginH:"Entrar", keyPh:"Tu clave de acceso (empieza con kb_)", enter:"Entrar", logout:"Salir",
       docsH:"Tus documentos", upload:"Subir", docsHelp:"Acepta PDF con texto, Word (.docx), .md y .txt. Hasta 5 MB por archivo y 50 documentos. Si subís un archivo con el mismo nombre, reemplaza al anterior.",
       testH:"Probar el asistente", qPh:"Hacé una pregunta de tu documentación", ask:"Preguntar",
-      repH:"Preguntas sin respuesta", repHelp:"Las preguntas que el asistente no pudo responder: cada una es un documento que falta.", repBtn:"Ver reporte",
+      repH:"Preguntas sin respuesta y documentos a revisar", repHelp:"Las preguntas que el asistente no pudo responder (cada una es un documento que falta) y los documentos que conviene revisar o actualizar.", repBtn:"Ver reporte",
       wH:"Widget para tu sitio web", wHelp:"Pegá este código antes de </body> en tu sitio. La clave del widget es pública y solo permite hacer preguntas.",
       origins:"Sitios autorizados (uno por línea, por ejemplo https://www.tuempresa.com). Si lo dejás vacío, funciona en cualquier sitio.", originsPh:"https://www.tuempresa.com", saveOrigins:"Guardar",
-      noDocs:"Todavía no subiste documentos.", sections:"secciones", del:"Borrar", confirmDel:"¿Borrar este documento?",
+      noDocs:"Todavía no subiste documentos.", sections:"secciones", section:"secci\u00f3n", del:"Borrar", confirmDel:"¿Borrar este documento?",
       badKey:"Clave inválida.", pick:"Elegí al menos un archivo.", uploading:"Subiendo…", ok:"listo", saved:"Guardado.", none:"Sin preguntas sin responder en los últimos 30 días.",
-      times:"veces", stats:"Preguntas", answered:"con respuesta", helpful:"útiles", asking:"Buscando…", sourcesL:"Fuentes", connErr:"No se pudo conectar. Probá de nuevo.", many:"Demasiadas consultas, esperá un momento.", welcome:"Cliente:"},
+      times:"veces", reviewH:"Documentos a revisar", reviewNone:"Ning\u00fan documento necesita revisi\u00f3n por ahora.", why_rated_not_helpful:"votos de \u201cno me sirvi\u00f3\u201d", why_stale:"subido hace {n} d\u00edas: \u00bfsigue vigente?", why_unused:"nunca fue la mejor respuesta en este per\u00edodo", stats:"Preguntas", answered:"con respuesta", helpful:"útiles", asking:"Buscando…", sourcesL:"Fuentes", connErr:"No se pudo conectar. Probá de nuevo.", many:"Demasiadas consultas, esperá un momento.", welcome:"Cliente:"},
     en: {title:"Documents panel", intro:"Upload your team's documentation and try the assistant. Each client sees only their own.",
       loginH:"Sign in", keyPh:"Your access key (starts with kb_)", enter:"Sign in", logout:"Sign out",
       docsH:"Your documents", upload:"Upload", docsHelp:"PDF with text, Word (.docx), .md and .txt. Up to 5 MB per file and 50 documents. Uploading a file with the same name replaces the old one.",
       testH:"Try the assistant", qPh:"Ask a question about your documents", ask:"Ask",
-      repH:"Unanswered questions", repHelp:"Questions the assistant could not answer: each one is a missing document.", repBtn:"Show report",
+      repH:"Unanswered questions and documents to review", repHelp:"Questions the assistant could not answer (each one is a missing document) and the documents worth reviewing or updating.", repBtn:"Show report",
       wH:"Widget for your website", wHelp:"Paste this code before </body> on your site. The widget key is public and can only ask questions.",
       origins:"Allowed sites (one per line, e.g. https://www.yourcompany.com). If empty, it works on any site.", originsPh:"https://www.yourcompany.com", saveOrigins:"Save",
-      noDocs:"You have not uploaded any documents yet.", sections:"sections", del:"Delete", confirmDel:"Delete this document?",
+      noDocs:"You have not uploaded any documents yet.", sections:"sections", section:"section", del:"Delete", confirmDel:"Delete this document?",
       badKey:"Invalid key.", pick:"Choose at least one file.", uploading:"Uploading…", ok:"done", saved:"Saved.", none:"No unanswered questions in the last 30 days.",
-      times:"times", stats:"Questions", answered:"answered", helpful:"helpful", asking:"Searching…", sourcesL:"Sources", connErr:"Could not connect. Try again.", many:"Too many requests, please wait a moment.", welcome:"Client:"}
+      times:"times", reviewH:"Documents to review", reviewNone:"No document needs review right now.", why_rated_not_helpful:"\u201cnot helpful\u201d votes", why_stale:"uploaded {n} days ago: is it still current?", why_unused:"was never the best answer in this period", stats:"Questions", answered:"answered", helpful:"helpful", asking:"Searching…", sourcesL:"Sources", connErr:"Could not connect. Try again.", many:"Too many requests, please wait a moment.", welcome:"Client:"}
   };
   var lang = (navigator.language || "es").toLowerCase().indexOf("en") === 0 ? "en" : "es";
   try { lang = localStorage.getItem("lang") || lang; } catch (e) {}
@@ -145,7 +145,7 @@
       j.documents.forEach(function (d) {
         var r = tb.insertRow();
         r.insertCell().textContent = d.title;
-        var c2 = r.insertCell(); c2.className = "mute"; c2.textContent = d.slug + " · " + d.lang + " · " + d.sections + " " + t("sections");
+        var c2 = r.insertCell(); c2.className = "mute"; c2.textContent = d.slug + " · " + d.lang + " · " + d.sections + " " + (d.sections === 1 ? t("section") : t("sections"));
         var b = document.createElement("button"); b.className = "del"; b.textContent = t("del");
         b.onclick = function () {
           if (!confirm(t("confirmDel"))) return;
@@ -215,10 +215,26 @@
       s.textContent = t("stats") + ": " + j.questions + (j.answer_rate !== null ? " · " + Math.round(j.answer_rate * 100) + "% " + t("answered") : "") +
         (j.helpful_rate !== null ? " · " + Math.round(j.helpful_rate * 100) + "% " + t("helpful") : "");
       box.appendChild(s);
-      if (!j.unanswered_questions.length) { var n = document.createElement("p"); n.className = "mute"; n.textContent = t("none"); box.appendChild(n); return; }
-      var ul = document.createElement("ul");
-      j.unanswered_questions.forEach(function (u) { var li = document.createElement("li"); li.textContent = u.question + " (" + u.times + " " + t("times") + ")"; ul.appendChild(li); });
-      box.appendChild(ul);
+      if (!j.unanswered_questions.length) { var n = document.createElement("p"); n.className = "mute"; n.textContent = t("none"); box.appendChild(n); }
+      else {
+        var ul = document.createElement("ul");
+        j.unanswered_questions.forEach(function (u) { var li = document.createElement("li"); li.textContent = u.question + " (" + u.times + " " + t("times") + ")"; ul.appendChild(li); });
+        box.appendChild(ul);
+      }
+      var h = document.createElement("h2"); h.textContent = t("reviewH"); h.style.marginTop = "1em"; box.appendChild(h);
+      var review = j.documents_to_review || [];
+      if (!review.length) { var m = document.createElement("p"); m.className = "mute"; m.textContent = t("reviewNone"); box.appendChild(m); return; }
+      var rl = document.createElement("ul");
+      review.forEach(function (d) {
+        var li = document.createElement("li");
+        var why = d.reasons.map(function (r) {
+          if (r === "rated_not_helpful") return d.rated_not_helpful + " " + t("why_rated_not_helpful");
+          return t("why_" + r).replace("{n}", d.age_days);
+        });
+        li.textContent = d.title + ": " + why.join("; ");
+        rl.appendChild(li);
+      });
+      box.appendChild(rl);
     });
   };
 

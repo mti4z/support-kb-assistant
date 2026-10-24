@@ -32,7 +32,7 @@ SELECT c.slug, c.lang, c.tenant_id, c.title, c.heading, c.content,
        ts_rank_cd(c.tsv, q.query, 32) AS score
 FROM chunks c, q
 WHERE c.lang = %(lang)s AND c.tenant_id IS NOT DISTINCT FROM %(tenant)s AND c.tsv @@ q.query
-ORDER BY score DESC
+ORDER BY score DESC, ts_rank(c.tsv, q.query) DESC, c.slug, c.id
 LIMIT %(limit)s
 """
 

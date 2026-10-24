@@ -239,6 +239,18 @@ Two keys per client, on purpose:
 
 In the panel the client can also list the sites allowed to use the widget (for example `https://www.client.com`); requests from any other site get 403. If the list is empty, the widget works anywhere. A visitor limit and the client's overall limit apply (see Usage limits). Set `PUBLIC_URL` (for example `https://support-kb-assistant.onrender.com`) so the snippet always shows the right address.
 
+## Documents to review
+
+The client report (`GET /tenant/report` and the panel) also lists the documents that probably need attention, most urgent first. This answers a problem several support teams described: the documentation exists but is outdated or hard to find, and nobody analyses the tickets, so nobody knows what is missing.
+
+| Reason | Meaning |
+|---|---|
+| `rated_not_helpful` | at least 2 "not helpful" votes, and more than "helpful" ones |
+| `stale` | uploaded `STALE_DAYS` (default 180) days ago or more; uploading the file again resets the clock |
+| `unused` | older than the report window and never the best match in it |
+
+The assistant does not update documents: it shows which ones to look at first. Together with the unanswered questions, that is the list of what to write or fix.
+
 ## Usage limits
 
 Each question to the public demo can cost a call to Claude, so `/ask` and `/search` are limited (HTTP 429 with a `Retry-After` header):
@@ -259,7 +271,7 @@ Set a variable to `0` to remove that limit. The counters live in memory: they re
 pytest -q
 ```
 
-65 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
+70 tests cover parsing, search in both languages, language detection, synonyms, the API, the question log, feedback, the admin report, usage limits and client separation (one client must never see another's documents). They re-run `python -m app.ingest`, which reloads the articles of the database they connect to, so use a local database. Rows created by the tests are removed afterwards.
 
 CI runs the tests and the evaluation on every push (`.github/workflows/ci.yml`).
 
